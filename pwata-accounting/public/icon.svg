@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#0f172a"/>
+  <text x="256" y="200" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#6366f1" text-anchor="middle">P</text>
+  <text x="256" y="340" font-family="Arial, sans-serif" font-size="48" font-weight="600" fill="#f1f5f9" text-anchor="middle">PWATA</text>
+  <text x="256" y="400" font-family="Arial, sans-serif" font-size="28" fill="#94a3b8" text-anchor="middle">CREATIVES</text>
+  <rect x="180" y="420" width="152" height="4" rx="2" fill="#6366f1"/>
+</svg>
