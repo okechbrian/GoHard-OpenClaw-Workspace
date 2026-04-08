@@ -1,4 +1,4 @@
 # HEARTBEAT.md
 
 ## Tasks
-_(none right now)_
+- [ ] Work on cron jobs (reminder in 1 hour)
