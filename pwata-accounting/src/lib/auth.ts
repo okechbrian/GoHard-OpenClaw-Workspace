@@ -1,29 +1,41 @@
-import sqlite from "@/lib/db";
-import { randomUUID } from "crypto";
+// Simple in-memory authentication for Vercel deployment
+// In production, replace with proper database solution
 
-// Initialize users table with default accounts
+const users = [
+  { id: "1", name: "GoHard", email: "gohard@pwata.com", password: "gohard123", role: "admin" },
+  { id: "2", name: "Wife", email: "wife@pwata.com", password: "pwata2024", role: "user" }
+];
+
+export function authenticateUser(email: string, password: string) {
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) return null;
+  
+  // Return user without password
+  const { password: _, ...userWithoutPassword } = user;
+  return userWithoutPassword;
+}
+
+// Keep the init function for local development with SQLite
 export function initUsers() {
-  // Check if users exist
-  const count = sqlite.prepare("SELECT COUNT(*) as count FROM users").get() as any;
-  if (count.count > 0) return;
+  // This will only work locally with SQLite
+  try {
+    const sqlite = require("@/lib/db");
+    const { randomUUID } = require("crypto");
+    
+    const count = sqlite.prepare("SELECT COUNT(*) as count FROM users").get() as any;
+    if (count.count > 0) return;
 
-  // Create default users (passwords: gohard123 / pwata2024)
-  // In production, use proper bcrypt hashing
-  const users = [
-    { id: randomUUID(), name: "GoHard", email: "gohard@pwata.com", password_hash: "gohard123", role: "admin" },
-    { id: randomUUID(), name: "Wife", email: "wife@pwata.com", password_hash: "pwata2024", role: "user" },
-  ];
-
-  const stmt = sqlite.prepare("INSERT INTO users (id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)");
-  for (const user of users) {
-    stmt.run(user.id, user.name, user.email, user.password_hash, user.role);
+    const stmt = sqlite.prepare("INSERT INTO users (id, name, email, password_hash, role) VALUES (?, ?, ?, ?, ?)");
+    for (const user of users) {
+      stmt.run(randomUUID(), user.name, user.email, user.password, user.role);
+    }
+  } catch (error) {
+    // SQLite not available (Vercel environment)
+    console.log("SQLite not available, using in-memory auth");
   }
 }
 
-export function authenticateUser(email: string, password: string) {
-  const user = sqlite.prepare("SELECT id, name, email, role FROM users WHERE email = ? AND password_hash = ?").get(email, password);
-  return user || null;
+// Auto-init on import (for local development)
+if (typeof window === 'undefined') {
+  initUsers();
 }
-
-// Auto-init on import
-initUsers();
