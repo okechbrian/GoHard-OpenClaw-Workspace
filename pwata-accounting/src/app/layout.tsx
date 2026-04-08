@@ -77,7 +77,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <body>
         {/* Top bar */}
         <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0.5rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 700, color: "#6366f1", fontSize: "0.875rem" }}>Pwata</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <img src="/logo.jpg" alt="Pwata Creatives" style={{ height: "24px", width: "24px", borderRadius: "4px" }} />
+            <span style={{ fontWeight: 700, color: "#6366f1", fontSize: "0.875rem" }}>Pwata</span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{user?.name}</span>
             <button onClick={handleLogout} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.75rem" }}>Logout</button>
