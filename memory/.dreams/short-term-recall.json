@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-13T09:56:26.109Z",
+  "entries": {
+    "memory:memory/2026-04-01.md:1:27": {
+      "key": "memory:memory/2026-04-01.md:1:27",
+      "path": "memory/2026-04-01.md",
+      "startLine": 1,
+      "endLine": 27,
+      "source": "memory",
+      "snippet": "# 2026-04-01 ## Pwata Creatives Accounting System — New Project Started - **Business:** Pwata Creatives (digital designs & branding, Uganda) - **Users:** GoHard + wife - **Payments:** Cash, MTN MoMo, Airtel Money - **Features needed:** Sales, expenses, inventory, customers, invoices, profit/loss - **Platforms:** Phone app + web browser - **Budget:** Free (no paid services) - **Project folder:** `pwata-accounting/` - **Tech stack:** Next.js 16 + React 19 + SQLite + Tailwind CSS + PWA - **Status:** Day 2 complete — auth, edit/delete, seed data, offline PWA ready - **Features built:** Dashboard, Sales, Expenses, Customers, Invoices (with line items), Reports (P&L), Login, Edit/Delete on all p",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.5049804121255874,
+      "maxScore": 0.5049804121255874,
+      "firstRecalledAt": "2026-04-13T09:56:26.109Z",
+      "lastRecalledAt": "2026-04-13T09:56:26.109Z",
+      "queryHashes": [
+        "10f7fdfba48d"
+      ],
+      "recallDays": [
+        "2026-04-13"
+      ],
+      "conceptTags": [
+        "profit/loss",
+        "pwata-accounting",
+        "next.js",
+        "edit/delete",
+        "pwata",
+        "creatives",
+        "accounting",
+        "system"
+      ]
+    }
+  }
+}
