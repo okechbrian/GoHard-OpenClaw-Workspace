@@ -31,6 +31,7 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
       <div className="card" style={{ width: "100%", maxWidth: "400px" }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <img src="/logo.jpg" alt="Pwata Creatives" style={{ height: "64px", width: "64px", borderRadius: "8px", marginBottom: "1rem" }} />
           <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#6366f1" }}>Pwata Creatives</h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "0.5rem" }}>Sign in to your accounting system</p>
         </div>

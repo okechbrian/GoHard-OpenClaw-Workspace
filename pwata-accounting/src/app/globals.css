@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
+  --primary: #ff7b00;
+  --primary-dark: #e06a00;
+  --primary-light: #ff9d33;
+  --secondary: #ffffff;
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
@@ -220,7 +222,7 @@ td {
 .badge-green { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
 .badge-red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 .badge-yellow { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-.badge-blue { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+.badge-blue { background: rgba(255, 123, 0, 0.2); color: var(--primary); }
 .badge-purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
 .badge-gray { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
 
