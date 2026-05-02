@@ -23,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (pathname.startsWith("/store")) return;
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((data) => {
@@ -43,13 +44,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   };
 
-  if (pathname === "/login") {
+  if (pathname === "/login" || pathname.startsWith("/store")) {
     return (
       <html lang="en">
         <head>
-          <title>Pwata Creatives — Login</title>
+          <title>Pwata Creatives</title>
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-          <meta name="theme-color" content="#0f172a" />
+          <meta name="theme-color" content="#ff7b00" />
           <link rel="manifest" href="/manifest.json" />
         </head>
         <body>{children}</body>

@@ -25,3 +25,10 @@ export function formatDate(dateStr: string): string {
     day: "numeric",
   });
 }
+
+export function generateStoreOrderNumber(): string {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+  const rand = Math.floor(Math.random() * 9000) + 1000;
+  return `ST-${datePart}-${rand}`;
+}

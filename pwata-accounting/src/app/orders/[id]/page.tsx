@@ -35,6 +35,8 @@ interface OrderDetail {
   guest_email: string | null;
   status: string;
   total_amount: number;
+  deposit_amount?: number;
+  source?: string;
   payment_method: string | null;
   payment_status: string;
   delivery_address: string | null;
@@ -222,10 +224,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <dd>
               {order.payment_method ? PAYMENT_LABELS[order.payment_method] || order.payment_method : "—"}
               {" · "}
-              <span className={`badge ${order.payment_status === "paid" ? "badge-green" : order.payment_status === "pending" ? "badge-yellow" : "badge-red"}`}>
+              <span className={`badge ${order.payment_status === "paid" ? "badge-green" : order.payment_status === "partial" ? "badge-blue" : order.payment_status === "pending" ? "badge-yellow" : "badge-red"}`}>
                 {order.payment_status}
               </span>
             </dd>
+            {order.source === "store" && order.deposit_amount && order.deposit_amount > 0 && (
+              <>
+                <dt style={{ color: "var(--text-muted)" }}>Deposit</dt>
+                <dd>
+                  {formatUGX(order.deposit_amount)} of {formatUGX(order.total_amount)}
+                  {" · "}
+                  <span className={`badge ${order.payment_status === "partial" || order.payment_status === "paid" ? "badge-green" : "badge-yellow"}`}>
+                    {order.payment_status === "partial" || order.payment_status === "paid" ? "Paid" : "Pending"}
+                  </span>
+                </dd>
+              </>
+            )}
             {order.notes && (<><dt style={{ color: "var(--text-muted)" }}>Notes</dt><dd>{order.notes}</dd></>)}
           </dl>
         </div>

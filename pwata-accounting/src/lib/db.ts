@@ -183,16 +183,19 @@ sqlite.exec(`
   );
 `);
 
-// Add foreign key references for automation (SQLite does not support
-// `ADD COLUMN IF NOT EXISTS`, so check existing columns via PRAGMA).
-function addColumnIfMissing(table: string, column: string, ddl: string) {
-  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-  if (!cols.some((c) => c.name === column)) {
+// Add a column to a table if it doesn't already exist.
+// Uses try-catch (not PRAGMA) to handle concurrent build workers safely.
+function addColumnIfMissing(table: string, _column: string, ddl: string) {
+  try {
     sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  } catch (err: any) {
+    if (!err?.message?.includes("duplicate column name")) throw err;
   }
 }
 addColumnIfMissing("sales", "order_id", "order_id TEXT REFERENCES orders(id)");
 addColumnIfMissing("invoices", "order_id", "order_id TEXT REFERENCES orders(id)");
+addColumnIfMissing("orders", "deposit_amount", "deposit_amount REAL DEFAULT 0");
+addColumnIfMissing("orders", "source", "source TEXT DEFAULT 'admin'");
 
 export function seedProductsIfEmpty() {
   try {

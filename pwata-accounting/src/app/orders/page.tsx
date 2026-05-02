@@ -13,6 +13,8 @@ interface Order {
   guest_name: string | null;
   guest_phone: string | null;
   total_amount: number;
+  deposit_amount?: number;
+  source?: string;
   status: string;
   payment_status: string;
   payment_method: string;
@@ -121,10 +123,22 @@ export default function OrdersPage() {
               const customer = o.customer_name || (o.guest_name ? `${o.guest_name} (guest)` : o.guest_phone || "—");
               return (
                 <tr key={o.id}>
-                  <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{o.order_number}</td>
+                  <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>
+                    {o.order_number}
+                    {o.source === "store" && (
+                      <span className="badge badge-blue" style={{ marginLeft: "0.375rem", fontSize: "0.6rem" }}>Store</span>
+                    )}
+                  </td>
                   <td>{customer}</td>
                   <td>{o.item_count}</td>
-                  <td style={{ fontWeight: 600 }}>{formatUGX(o.total_amount)}</td>
+                  <td>
+                    <span style={{ fontWeight: 600 }}>{formatUGX(o.total_amount)}</span>
+                    {o.source === "store" && o.deposit_amount && o.payment_status !== "paid" && (
+                      <span style={{ display: "block", fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                        Deposit: {formatUGX(o.deposit_amount)}
+                      </span>
+                    )}
+                  </td>
                   <td><StatusBadge status={o.status} /></td>
                   <td>
                     <span className={`badge ${o.payment_status === "paid" ? "badge-green" : o.payment_status === "pending" ? "badge-yellow" : "badge-red"}`}>

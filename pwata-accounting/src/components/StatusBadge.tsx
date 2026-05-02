@@ -5,6 +5,7 @@ interface StatusBadgeProps {
 
 export default function StatusBadge({ status, className = "" }: StatusBadgeProps) {
   const statusConfig = {
+    awaiting_payment: { label: "Awaiting Payment", color: "badge-yellow", icon: "💳" },
     pending: { label: "Pending", color: "badge-yellow", icon: "⏳" },
     in_design: { label: "In Design", color: "badge-blue", icon: "🎨" },
     printing: { label: "Printing", color: "badge-purple", icon: "🖨️" },

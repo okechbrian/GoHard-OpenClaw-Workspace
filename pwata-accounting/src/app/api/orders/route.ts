@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     let query = `
       SELECT
         o.*,
+        o.deposit_amount,
+        o.source,
         c.name as customer_name,
         COUNT(oi.id) as item_count
       FROM orders o
