@@ -4,13 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { CartItem } from "@/app/store/page";
+import { STYLES, COLOR_SCHEMES, PLACEMENTS, briefCompleteness, type DesignBrief } from "@/lib/design-brief";
 
 function formatUGX(n: number) {
   return `UGX ${n.toLocaleString("en-UG")}`;
 }
 
+const COLOR_SCHEME_SWATCHES: Record<string, { bg: string; label: string }> = {
+  "Black & White": { bg: "#1e1e1e", label: "B&W" },
+  "Orange":        { bg: "#f97316", label: "" },
+  "Blue":          { bg: "#3b82f6", label: "" },
+  "Red":           { bg: "#ef4444", label: "" },
+  "Gold":          { bg: "#eab308", label: "" },
+  "Green":         { bg: "#22c55e", label: "" },
+  "Multi-color":   { bg: "conic-gradient(red,yellow,green,blue,red)", label: "🎨" },
+};
+
 function StepIndicator({ current }: { current: number }) {
-  const steps = ["Cart", "Details", "Pay", "Processing"];
+  const steps = ["Cart", "Design", "Details", "Pay", "Done"];
   return (
     <div className="step-indicator">
       {steps.map((label, i) => {
@@ -35,23 +46,173 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
+interface BriefState {
+  print_text: string;
+  style: string;
+  color_scheme: string;
+  placement: string;
+  inspiration: string;
+}
+
+function BriefCard({
+  item,
+  idx,
+  brief,
+  onChange,
+}: {
+  item: CartItem;
+  idx: number;
+  brief: BriefState;
+  onChange: (idx: number, patch: Partial<BriefState>) => void;
+}) {
+  return (
+    <div className="brief-card">
+      <p style={{ fontWeight: 700, fontSize: "0.875rem", marginBottom: "0.75rem" }}>
+        {item.quantity}× {item.product_name}
+        {(item.color || item.size) && (
+          <span style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: "0.375rem" }}>
+            ({[item.color, item.size].filter(Boolean).join(", ")})
+          </span>
+        )}
+      </p>
+
+      <div className="form-group">
+        <label className="label">What should be printed? *</label>
+        <input
+          className="input"
+          placeholder='e.g. "Kizibazi FC · Est 2019"'
+          value={brief.print_text}
+          onChange={(e) => onChange(idx, { print_text: e.target.value })}
+        />
+      </div>
+
+      <div className="form-group">
+        <label className="label">Design style</label>
+        <div className="style-pills">
+          {STYLES.map((s) => (
+            <button
+              key={s}
+              className={`style-pill${brief.style === s ? " selected" : ""}`}
+              onClick={() => onChange(idx, { style: brief.style === s ? "" : s })}
+              type="button"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="label">Color scheme</label>
+        <div className="color-swatches">
+          {COLOR_SCHEMES.map((cs) => {
+            const swatch = COLOR_SCHEME_SWATCHES[cs];
+            return (
+              <button
+                key={cs}
+                title={cs}
+                className={`color-dot${brief.color_scheme === cs ? " selected" : ""}`}
+                style={{ background: swatch?.bg ?? "#888" }}
+                onClick={() => onChange(idx, { color_scheme: brief.color_scheme === cs ? "" : cs })}
+                type="button"
+              >
+                {swatch?.label ?? ""}
+              </button>
+            );
+          })}
+        </div>
+        {brief.color_scheme && (
+          <p style={{ fontSize: "0.7rem", color: "var(--primary)", marginTop: "0.25rem" }}>{brief.color_scheme}</p>
+        )}
+      </div>
+
+      <div className="form-group">
+        <label className="label">Print placement</label>
+        <div className="placement-pills">
+          {PLACEMENTS.map((pl) => (
+            <button
+              key={pl}
+              className={`placement-pill${brief.placement === pl ? " selected" : ""}`}
+              onClick={() => onChange(idx, { placement: brief.placement === pl ? "" : pl })}
+              type="button"
+            >
+              {pl}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="form-group" style={{ marginBottom: 0 }}>
+        <label className="label">Inspiration / reference (optional)</label>
+        <input
+          className="input"
+          placeholder="Describe a style or logo you like"
+          value={brief.inspiration}
+          onChange={(e) => onChange(idx, { inspiration: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BriefStrength({ cart, briefs }: { cart: CartItem[]; briefs: BriefState[] }) {
+  const allBriefs: DesignBrief[] = briefs.map((b) => ({
+    print_text: b.print_text || undefined,
+    style: b.style || undefined,
+    color_scheme: b.color_scheme || undefined,
+    placement: b.placement || undefined,
+    inspiration: b.inspiration || undefined,
+  }));
+  const scores = allBriefs.map((b) => briefCompleteness(b));
+  const overall = scores.every((s) => s === "complete") ? "complete" : scores.every((s) => s === "minimal") ? "minimal" : "good";
+
+  const filled = overall === "complete" ? 3 : overall === "good" ? 2 : 1;
+  const isComplete = overall === "complete";
+
+  const tips: Record<string, string> = {
+    minimal: "add style + placement for best results",
+    good: "add inspiration to help the designer",
+    complete: "your brief is complete!",
+  };
+
+  return (
+    <div className="brief-strength">
+      <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", whiteSpace: "nowrap" }}>Brief strength:</span>
+      <div className="brief-strength-bar">
+        {[1, 2, 3].map((seg) => (
+          <div
+            key={seg}
+            className={`brief-strength-segment${seg <= filled ? (isComplete ? " filled-complete" : " filled") : ""}`}
+          />
+        ))}
+      </div>
+      <span style={{ color: isComplete ? "var(--success)" : filled >= 2 ? "var(--primary)" : "var(--text-muted)", fontSize: "0.72rem", whiteSpace: "nowrap" }}>
+        {overall === "complete" ? "Complete ✓" : overall === "good" ? "Good" : "Minimal"} — {tips[overall]}
+      </span>
+    </div>
+  );
+}
+
 export default function StoreOrderPage() {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [briefs, setBriefs] = useState<BriefState[]>([]);
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [orderNotes, setOrderNotes] = useState("");
 
-  // Step 2 state
+  // Step 3 state
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
 
-  // Step 3 state
+  // Step 4 state
   const [momoPhone, setMomoPhone] = useState("");
   const [network, setNetwork] = useState<"MTN" | "AIRTEL">("MTN");
   const [submitting, setSubmitting] = useState(false);
 
-  // Step 4 state
+  // Step 5 state
   const [orderId, setOrderId] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [depositAmount, setDepositAmount] = useState(0);
@@ -66,7 +227,10 @@ export default function StoreOrderPage() {
       try {
         const parsed = JSON.parse(saved) as CartItem[];
         if (!parsed.length) router.replace("/store");
-        else setCart(parsed);
+        else {
+          setCart(parsed);
+          setBriefs(parsed.map(() => ({ print_text: "", style: "", color_scheme: "", placement: "", inspiration: "" })));
+        }
       } catch {
         router.replace("/store");
       }
@@ -76,14 +240,12 @@ export default function StoreOrderPage() {
   }, [router]);
 
   useEffect(() => {
-    if (step === 2 && phone) setMomoPhone(phone);
-    if (step === 3) setMomoPhone((p) => p || phone);
+    if (step === 3 && phone) setMomoPhone(phone);
+    if (step === 4) setMomoPhone((p) => p || phone);
   }, [step, phone]);
 
-  // Polling for payment confirmation
   useEffect(() => {
-    if (step !== 4 || !orderId) return;
-
+    if (step !== 5 || !orderId) return;
     pollCount.current = 0;
     pollTimer.current = setInterval(async () => {
       pollCount.current += 1;
@@ -103,11 +265,10 @@ export default function StoreOrderPage() {
           clearInterval(pollTimer.current!);
           toast.error("Payment failed. Please try again.");
           setSubmitting(false);
-          setStep(3);
+          setStep(4);
         }
       } catch { /* ignore network blips */ }
     }, 3000);
-
     return () => { if (pollTimer.current) clearInterval(pollTimer.current); };
   }, [step, orderId, router]);
 
@@ -127,15 +288,19 @@ export default function StoreOrderPage() {
       const updated = prev.filter((_, i) => i !== idx);
       if (!updated.length) router.replace("/store");
       sessionStorage.setItem("pwata_cart", JSON.stringify(updated));
+      setBriefs((pb) => pb.filter((_, i) => i !== idx));
       return updated;
     });
+  };
+
+  const patchBrief = (idx: number, patch: Partial<BriefState>) => {
+    setBriefs((prev) => prev.map((b, i) => i === idx ? { ...b, ...patch } : b));
   };
 
   const handlePay = async () => {
     if (submitting) return;
     setSubmitting(true);
-    setStep(4);
-
+    setStep(5);
     try {
       const orderRes = await fetch("/api/store/orders", {
         method: "POST",
@@ -146,19 +311,27 @@ export default function StoreOrderPage() {
           guest_email: email.trim() || undefined,
           delivery_address: address.trim(),
           momo_network: network,
-          items: cart.map((it) => ({
+          deadline_date: deadlineDate || undefined,
+          notes: orderNotes.trim() || undefined,
+          items: cart.map((it, idx) => ({
             product_id: it.product_id,
             quantity: it.quantity,
-            customizations: { color: it.color, size: it.size, notes: it.notes },
+            customizations: {
+              color: it.color,
+              size: it.size,
+              print_text: briefs[idx]?.print_text || undefined,
+              style: briefs[idx]?.style || undefined,
+              color_scheme: briefs[idx]?.color_scheme || undefined,
+              placement: briefs[idx]?.placement || undefined,
+              inspiration: briefs[idx]?.inspiration || undefined,
+            },
           })),
         }),
       });
-
       if (!orderRes.ok) {
         const err = await orderRes.json();
         throw new Error(err.error || "Order creation failed");
       }
-
       const orderData = await orderRes.json();
       setOrderId(orderData.id);
       setOrderNumber(orderData.order_number);
@@ -176,20 +349,18 @@ export default function StoreOrderPage() {
           customer_email: email.trim() || undefined,
         }),
       });
-
       if (!payRes.ok) {
         const err = await payRes.json();
         throw new Error(err.error || "Payment initiation failed");
       }
-
     } catch (err: any) {
       toast.error(err.message || "Something went wrong. Please try again.");
       setSubmitting(false);
-      setStep(3);
+      setStep(4);
     }
   };
 
-  if (!cart.length && step < 4) {
+  if (!cart.length && step < 5) {
     return <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>Loading…</div>;
   }
 
@@ -218,7 +389,6 @@ export default function StoreOrderPage() {
                       {[it.color, it.size].filter(Boolean).join(" · ")}
                     </p>
                   )}
-                  {it.notes && <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{it.notes}</p>}
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.375rem" }}>
                     <button onClick={() => updateQty(idx, -1)} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-input)", color: "var(--text)", cursor: "pointer" }}>−</button>
                     <span style={{ fontWeight: 700, minWidth: 20, textAlign: "center" }}>{it.quantity}</span>
@@ -239,13 +409,65 @@ export default function StoreOrderPage() {
           </div>
 
           <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} onClick={() => setStep(2)}>
-            Continue to Details →
+            Continue to Design Brief →
           </button>
         </div>
       )}
 
-      {/* STEP 2 — Details */}
+      {/* STEP 2 — Design Brief */}
       {step === 2 && (
+        <div>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.25rem" }}>🎨 Design Brief</h2>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+            Tell our designers exactly what you want printed
+          </p>
+
+          {cart.map((it, idx) => (
+            <BriefCard
+              key={idx}
+              item={it}
+              idx={idx}
+              brief={briefs[idx] ?? { print_text: "", style: "", color_scheme: "", placement: "", inspiration: "" }}
+              onChange={patchBrief}
+            />
+          ))}
+
+          <div className="form-group">
+            <label className="label">When do you need this by? (optional)</label>
+            <input
+              className="input"
+              type="date"
+              value={deadlineDate}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDeadlineDate(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">Anything else for the design team? (optional)</label>
+            <textarea
+              className="input"
+              rows={2}
+              placeholder="e.g. Keep it minimal, no clipart please"
+              value={orderNotes}
+              onChange={(e) => setOrderNotes(e.target.value)}
+              style={{ resize: "vertical" }}
+            />
+          </div>
+
+          {briefs.length > 0 && <BriefStrength cart={cart} briefs={briefs} />}
+
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep(1)}>← Back</button>
+            <button className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }} onClick={() => setStep(3)}>
+              Continue to Details →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3 — Details */}
+      {step === 3 && (
         <div>
           <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>Your Details</h2>
           <div className="form-group">
@@ -266,7 +488,7 @@ export default function StoreOrderPage() {
           </div>
 
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep(1)}>← Back</button>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep(2)}>← Back</button>
             <button
               className="btn btn-primary"
               style={{ flex: 2, justifyContent: "center" }}
@@ -275,7 +497,7 @@ export default function StoreOrderPage() {
                 if (!phone.trim()) { toast.error("Phone number is required"); return; }
                 if (!address.trim()) { toast.error("Delivery address is required"); return; }
                 setMomoPhone(phone.trim());
-                setStep(3);
+                setStep(4);
               }}
             >
               Continue to Payment →
@@ -284,8 +506,8 @@ export default function StoreOrderPage() {
         </div>
       )}
 
-      {/* STEP 3 — Review & Pay */}
-      {step === 3 && (
+      {/* STEP 4 — Review & Pay */}
+      {step === 4 && (
         <div>
           <h2 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "1rem" }}>Review & Pay</h2>
 
@@ -327,7 +549,7 @@ export default function StoreOrderPage() {
           </div>
 
           <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
-            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep(2)}>← Back</button>
+            <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setStep(3)}>← Back</button>
             <button
               className="btn btn-primary"
               style={{ flex: 2, justifyContent: "center" }}
@@ -347,8 +569,8 @@ export default function StoreOrderPage() {
         </div>
       )}
 
-      {/* STEP 4 — Processing */}
-      {step === 4 && (
+      {/* STEP 5 — Processing */}
+      {step === 5 && (
         <div style={{ textAlign: "center", padding: "2rem 0" }}>
           {!pollTimedOut ? (
             <>

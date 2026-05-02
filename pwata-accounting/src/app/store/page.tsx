@@ -25,7 +25,11 @@ export interface CartItem {
   quantity: number;
   color?: string;
   size?: string;
-  notes?: string;
+  print_text?: string;
+  style?: string;
+  color_scheme?: string;
+  placement?: string;
+  inspiration?: string;
 }
 
 const CATEGORIES = ["All", "Apparel", "Drinkware", "Accessories", "Print"];
@@ -46,7 +50,6 @@ function AddModal({ product, onAdd, onClose }: { product: Product; onAdd: (item:
   const [qty, setQty] = useState(1);
   const [color, setColor] = useState(product.variants?.colors?.[0] ?? "");
   const [size, setSize] = useState(product.variants?.sizes?.[0] ?? "");
-  const [notes, setNotes] = useState("");
 
   const unitPrice = product.base_price + product.print_fee;
 
@@ -86,13 +89,6 @@ function AddModal({ product, onAdd, onClose }: { product: Product; onAdd: (item:
           </div>
         )}
 
-        {product.customizable && (
-          <div className="form-group">
-            <label className="label">Custom Notes (optional)</label>
-            <input className="input" placeholder="e.g. Print my logo on back" value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </div>
-        )}
-
         <div className="form-group">
           <label className="label">Quantity</label>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -103,11 +99,15 @@ function AddModal({ product, onAdd, onClose }: { product: Product; onAdd: (item:
           </div>
         </div>
 
+        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.75rem", textAlign: "center" }}>
+          🎨 You&apos;ll describe your design on the next step
+        </p>
+
         <button
           className="btn btn-primary"
           style={{ width: "100%", justifyContent: "center" }}
           onClick={() => {
-            onAdd({ product_id: product.id, product_name: product.name, image_url: product.image_url, base_price: product.base_price, print_fee: product.print_fee, quantity: qty, color: color || undefined, size: size || undefined, notes: notes.trim() || undefined });
+            onAdd({ product_id: product.id, product_name: product.name, image_url: product.image_url, base_price: product.base_price, print_fee: product.print_fee, quantity: qty, color: color || undefined, size: size || undefined });
             toast.success(`${product.name} added to cart`);
             onClose();
           }}

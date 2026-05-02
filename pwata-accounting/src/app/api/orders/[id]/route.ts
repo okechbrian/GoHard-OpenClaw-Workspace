@@ -9,7 +9,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Get order with customer info
     const order = sqlite.prepare(`
-      SELECT o.*, c.name as customer_name
+      SELECT o.*, o.deadline_date, o.artwork_urls, c.name as customer_name
       FROM orders o LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.id = ?
     `).get(orderId);

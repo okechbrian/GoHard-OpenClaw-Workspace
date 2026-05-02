@@ -196,6 +196,7 @@ addColumnIfMissing("sales", "order_id", "order_id TEXT REFERENCES orders(id)");
 addColumnIfMissing("invoices", "order_id", "order_id TEXT REFERENCES orders(id)");
 addColumnIfMissing("orders", "deposit_amount", "deposit_amount REAL DEFAULT 0");
 addColumnIfMissing("orders", "source", "source TEXT DEFAULT 'admin'");
+addColumnIfMissing("orders", "deadline_date", "deadline_date TEXT");
 
 export function seedProductsIfEmpty() {
   try {

@@ -3,6 +3,16 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { briefToText, type DesignBrief } from "@/lib/design-brief";
+
+interface OrderItem {
+  id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  customizations: string | null;
+}
 
 interface StoreOrder {
   id: string;
@@ -11,8 +21,11 @@ interface StoreOrder {
   payment_status: string;
   total_amount: number;
   deposit_amount: number;
+  deadline_date?: string | null;
+  artwork_urls?: string | null;
   source: string;
   created_at: string;
+  items?: OrderItem[];
 }
 
 function formatUGX(n: number) {
@@ -72,6 +85,24 @@ export default function StoreOrderTrackingPage({ params }: { params: Promise<{ i
   };
 
   const whatsappNum = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "256700000000";
+
+  const buildWhatsAppMessage = () => {
+    const lines = [`Hi Pwata Creatives! 👋`, `Order: ${order?.order_number ?? ""}`, `---`];
+    if (order?.items?.length) {
+      for (const it of order.items) {
+        try {
+          const brief = JSON.parse(it.customizations ?? "{}") as DesignBrief;
+          lines.push(briefToText(it.product_name, it.quantity, brief));
+        } catch {
+          lines.push(`${it.quantity}× ${it.product_name}`);
+        }
+      }
+      lines.push("---");
+    }
+    if (order?.deadline_date) lines.push(`Deadline: ${order.deadline_date}`);
+    lines.push("I have a question.");
+    return lines.join("\n");
+  };
 
   if (loading) {
     return (
@@ -154,6 +185,33 @@ export default function StoreOrderTrackingPage({ params }: { params: Promise<{ i
         </ul>
       </div>
 
+      {/* Design Brief summary */}
+      {order.items && order.items.some((it) => {
+        try { const b = JSON.parse(it.customizations ?? "{}") as DesignBrief; return !!(b.print_text || b.style || b.placement); } catch { return false; }
+      }) && (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <h3 style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>📋 Your Design Brief</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {order.items.map((it, i) => {
+              try {
+                const brief = JSON.parse(it.customizations ?? "{}") as DesignBrief;
+                const text = briefToText(it.product_name, it.quantity, brief);
+                return (
+                  <pre key={i} style={{ fontFamily: "inherit", fontSize: "0.8rem", whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0, background: "var(--bg-input)", borderRadius: 8, padding: "0.5rem 0.75rem" }}>
+                    {text}
+                  </pre>
+                );
+              } catch { return null; }
+            })}
+          </div>
+          {order.deadline_date && (
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.625rem" }}>
+              📅 Needed by: <strong>{order.deadline_date}</strong>
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <button
@@ -165,7 +223,7 @@ export default function StoreOrderTrackingPage({ params }: { params: Promise<{ i
         </button>
 
         <a
-          href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(`Hi, my Pwata Creatives order number is ${order.order_number}. I have a question.`)}`}
+          href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent(buildWhatsAppMessage())}`}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-success"

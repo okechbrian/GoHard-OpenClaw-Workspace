@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import StatusBadge from "@/components/StatusBadge";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { briefToText, type DesignBrief } from "@/lib/design-brief";
 
 interface OrderItem {
   id: string;
@@ -41,6 +42,8 @@ interface OrderDetail {
   payment_status: string;
   delivery_address: string | null;
   notes: string | null;
+  deadline_date?: string | null;
+  artwork_urls?: string | null;
   created_at: string;
   items: OrderItem[];
   statusHistory: StatusHistoryEntry[];
@@ -71,15 +74,29 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-function parseCustomizations(raw: string | null): string {
+function parseCustomizationsLabel(raw: string | null): string {
   if (!raw) return "";
   try {
-    const obj = JSON.parse(raw);
+    const obj = JSON.parse(raw) as DesignBrief;
     if (typeof obj === "string") return obj;
-    if (obj?.notes) return obj.notes;
-    return JSON.stringify(obj);
+    const parts: string[] = [];
+    if (obj.color || obj.size) parts.push([obj.color, obj.size].filter(Boolean).join(", "));
+    if (obj.print_text) parts.push(`"${obj.print_text}"`);
+    if (obj.style) parts.push(obj.style);
+    if (obj.placement) parts.push(obj.placement);
+    return parts.join(" · ") || (obj.notes ?? "");
   } catch {
     return raw;
+  }
+}
+
+function hasBriefContent(raw: string | null): boolean {
+  if (!raw) return false;
+  try {
+    const obj = JSON.parse(raw) as DesignBrief;
+    return !!(obj.print_text || obj.style || obj.color_scheme || obj.placement || obj.inspiration);
+  } catch {
+    return false;
   }
 }
 
@@ -209,6 +226,56 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
+      {/* Design Brief card — show for store orders that have brief content */}
+      {order.source === "store" && order.items.some((it) => hasBriefContent(it.customizations)) && (
+        <div className="card" style={{ marginBottom: "1rem", borderLeft: "4px solid var(--primary)" }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem" }}>📋 Design Brief</h2>
+          {order.deadline_date && (() => {
+            const daysLeft = Math.ceil((new Date(order.deadline_date).getTime() - Date.now()) / 86400000);
+            return (
+              <p style={{ fontSize: "0.8rem", fontWeight: 700, color: daysLeft <= 3 ? "var(--warning)" : "var(--text-muted)", marginBottom: "0.75rem" }}>
+                {daysLeft <= 3 ? "⚠️" : "📅"} Deadline: {order.deadline_date}{daysLeft <= 3 ? ` (${daysLeft}d away!)` : ""}
+              </p>
+            );
+          })()}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {order.items.map((it) => {
+              if (!hasBriefContent(it.customizations)) return null;
+              try {
+                const brief = JSON.parse(it.customizations ?? "{}") as DesignBrief;
+                const text = briefToText(it.product_name, it.quantity, brief);
+                return (
+                  <div key={it.id} style={{ background: "var(--bg-input)", borderRadius: 8, padding: "0.625rem 0.75rem" }}>
+                    <pre style={{ fontFamily: "inherit", fontSize: "0.8rem", whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0 }}>{text}</pre>
+                  </div>
+                );
+              } catch {
+                return null;
+              }
+            })}
+          </div>
+          {order.artwork_urls && (() => {
+            try {
+              const urls: string[] = JSON.parse(order.artwork_urls);
+              if (!urls.length) return null;
+              return (
+                <div style={{ marginTop: "0.75rem" }}>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.375rem" }}>Reference images:</p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {urls.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={`ref ${i + 1}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            } catch { return null; }
+          })()}
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1rem", marginBottom: "1rem" }}>
         {/* Customer & delivery */}
         <div className="card">
@@ -249,7 +316,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem" }}>Items ({order.items.length})</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {order.items.map((it) => {
-              const custom = parseCustomizations(it.customizations);
+              const custom = parseCustomizationsLabel(it.customizations);
               return (
                 <div key={it.id} style={{ display: "flex", gap: "0.75rem", padding: "0.5rem", background: "var(--bg-input)", borderRadius: "8px" }}>
                   {it.image_url ? (

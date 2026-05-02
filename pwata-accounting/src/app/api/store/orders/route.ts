@@ -49,13 +49,15 @@ export async function POST(request: NextRequest) {
     sqlite.prepare(`
       INSERT INTO orders (id, order_number, guest_name, guest_phone, guest_email,
         status, total_amount, deposit_amount, source, payment_method, payment_status,
-        delivery_address, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, 'store', ?, 'pending', ?, ?, datetime('now'), datetime('now'))
+        delivery_address, notes, deadline_date, artwork_urls, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, 'store', ?, 'pending', ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).run(
       orderId, orderNumber,
       body.guest_name.trim(), body.guest_phone.trim(), body.guest_email?.trim() || null,
       totalAmount, depositAmount, paymentMethod,
-      body.delivery_address.trim(), body.notes?.trim() || null
+      body.delivery_address.trim(), body.notes?.trim() || null,
+      body.deadline_date || null,
+      body.artwork_urls?.length ? JSON.stringify(body.artwork_urls) : null
     );
 
     const itemInsert = sqlite.prepare(`
