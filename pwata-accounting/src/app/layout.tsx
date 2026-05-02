@@ -7,9 +7,11 @@ import "./globals.css";
 
 const navItems = [
   { href: "/", label: "Home", icon: "🏠" },
+  { href: "/orders", label: "Orders", icon: "📋" },
+  { href: "/products", label: "Catalog", icon: "🛍️" },
   { href: "/sales", label: "Sales", icon: "💰" },
-  { href: "/expenses", label: "Expenses", icon: "📉" },
   { href: "/invoices", label: "Invoices", icon: "🧾" },
+  { href: "/expenses", label: "Expenses", icon: "📉" },
   { href: "/customers", label: "Clients", icon: "👥" },
   { href: "/inventory", label: "Stock", icon: "📦" },
   { href: "/reports", label: "Reports", icon: "📊" },
@@ -89,12 +91,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="bottom-nav">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={pathname === item.href ? "active" : ""}>
-              <span className="bottom-nav-icon">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            return (
+              <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+                <span className="bottom-nav-icon">{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </body>
     </html>

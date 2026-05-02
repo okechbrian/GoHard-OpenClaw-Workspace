@@ -221,6 +221,7 @@ td {
 .badge-red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 .badge-yellow { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 .badge-blue { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+.badge-purple { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
 .badge-gray { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
 
 .modal-overlay {
