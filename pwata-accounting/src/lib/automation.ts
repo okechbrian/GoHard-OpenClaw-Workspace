@@ -4,7 +4,8 @@ import { generateId, generateInvoiceNumber, formatUGX } from "./utils";
 export async function onOrderStatusChange(
   orderId: string,
   newStatus: string,
-  changedBy?: string | null
+  changedBy?: string | null,
+  options?: { skipHistory?: boolean; note?: string }
 ) {
   try {
     // 1. Fetch full order details
@@ -14,18 +15,29 @@ export async function onOrderStatusChange(
       return { saleCreated: false, invoiceCreated: false };
     }
 
-    // 2. Insert status history
-    sqlite.prepare(`
-      INSERT INTO order_status_history (id, order_id, status, changed_by, notes, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).run(generateId(), orderId, newStatus, changedBy, `Status changed to ${newStatus}`);
+    // 2. Insert status history (unless caller already wrote a richer entry)
+    if (!options?.skipHistory) {
+      sqlite.prepare(`
+        INSERT INTO order_status_history (id, order_id, status, changed_by, notes, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `).run(generateId(), orderId, newStatus, changedBy, options?.note ?? `Status changed to ${newStatus}`);
+    }
 
-    // 3. Handle financial automation for ready_for_delivery and completed statuses
+    // 3. Handle financial automation
+    //    - All orders: when reaching ready_for_delivery / completed (work is finished)
+    //    - Store orders: also when entering in_design (deposit paid, committed to fulfilling)
+    //    Idempotent — existingSale check below prevents double-create as the order moves through states.
     let saleCreated = false;
     let invoiceCreated = false;
     let pdfUrl: string | undefined;
 
-    if (newStatus === 'ready_for_delivery' || newStatus === 'completed') {
+    const isStoreOrder = order.source === 'store';
+    const triggersFinancials =
+      newStatus === 'ready_for_delivery' ||
+      newStatus === 'completed' ||
+      (isStoreOrder && newStatus === 'in_design');
+
+    if (triggersFinancials) {
       // Check if sale already exists for this order (idempotency)
       const existingSale = sqlite.prepare("SELECT id FROM sales WHERE order_id = ?").get(orderId) as any;
 

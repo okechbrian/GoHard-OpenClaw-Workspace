@@ -1,6 +1,6 @@
 import sqlite from "@/lib/db";
-import { generateId } from "@/lib/utils";
 import { verifyWebhookSignature } from "@/lib/flutterwave";
+import { onOrderStatusChange } from "@/lib/automation";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -32,17 +32,14 @@ export async function POST(request: NextRequest) {
 
     if (status === "successful" && data?.status === "successful") {
       sqlite.prepare(
-        "UPDATE orders SET payment_status = 'partial', payment_reference = ?, updated_at = datetime('now') WHERE id = ?"
+        "UPDATE orders SET payment_status = 'partial', status = 'in_design', payment_reference = ?, updated_at = datetime('now') WHERE id = ?"
       ).run(data.flw_ref ?? data.id, orderId);
 
-      sqlite.prepare(`
-        INSERT INTO order_status_history (id, order_id, status, changed_by, notes, created_at)
-        VALUES (?, ?, 'pending', null, ?, datetime('now'))
-      `).run(
-        generateId(),
-        orderId,
-        `Deposit paid via ${data.payment_type ?? "mobile money"} — ref ${data.flw_ref ?? data.id}`
-      );
+      // Auto-create Sale + Invoice now that the deposit is in.
+      // Pass a richer note to be recorded in order_status_history.
+      await onOrderStatusChange(orderId, "in_design", null, {
+        note: `Deposit paid via ${data.payment_type ?? "mobile money"} — ref ${data.flw_ref ?? data.id}`,
+      });
     } else if (status === "failed" || data?.status === "failed") {
       sqlite.prepare(
         "UPDATE orders SET payment_status = 'failed', updated_at = datetime('now') WHERE id = ?"
