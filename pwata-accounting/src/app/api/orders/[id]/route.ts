@@ -1,6 +1,7 @@
 import sqlite from "@/lib/db";
 import { generateId } from "@/lib/utils";
 import { onOrderStatusChange } from "@/lib/automation";
+import { getCurrentUser } from "@/lib/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -44,6 +45,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id: orderId } = await params;
     const body = await request.json();
+    const user = await getCurrentUser(request);
 
     // Validate status
     const validStatuses = ['pending', 'in_design', 'printing', 'ready_for_delivery', 'completed', 'cancelled'];
@@ -65,12 +67,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Insert status history
     sqlite.prepare(`
       INSERT INTO order_status_history (id, order_id, status, changed_by, notes, created_at)
-      VALUES (?, ?, ?, null, ?, datetime('now'))
-    `).run(generateId(), orderId, body.status, body.notes || `Status changed to ${body.status}`);
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).run(generateId(), orderId, body.status, user?.id ?? null, body.notes || `Status changed to ${body.status}`);
 
     // Trigger automation for specific status changes
-    if (body.status === 'ready_for_delivery' || body.status === 'completed') {
-      await onOrderStatusChange(orderId, body.status, null); // changedBy will come from auth in later prompt
+    if (body.status === 'ready_for_delivery' || body.status === 'completed' || body.status === 'in_design') {
+      await onOrderStatusChange(orderId, body.status, user?.id ?? null);
     }
 
     // Return updated order

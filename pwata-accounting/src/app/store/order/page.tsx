@@ -193,6 +193,9 @@ function BriefStrength({ cart, briefs }: { cart: CartItem[]; briefs: BriefState[
   );
 }
 
+const UPLOADS_ENABLED = process.env.NEXT_PUBLIC_ENABLE_UPLOADS === "true";
+const MAX_UPLOADS = 3;
+
 export default function StoreOrderPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -200,6 +203,9 @@ export default function StoreOrderPage() {
   const [briefs, setBriefs] = useState<BriefState[]>([]);
   const [deadlineDate, setDeadlineDate] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
+  const [artworkUrls, setArtworkUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   // Step 3 state
   const [name, setName] = useState("");
@@ -297,6 +303,42 @@ export default function StoreOrderPage() {
     setBriefs((prev) => prev.map((b, i) => i === idx ? { ...b, ...patch } : b));
   };
 
+  const uploadFile = async (file: File) => {
+    if (artworkUrls.length >= MAX_UPLOADS) {
+      toast.error(`Max ${MAX_UPLOADS} reference images`);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File must be under 5MB");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Only JPG, PNG, or WEBP");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+      const data = await res.json();
+      setArtworkUrls((prev) => [...prev, data.url]);
+      toast.success("Image uploaded");
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeArtwork = (idx: number) => {
+    setArtworkUrls((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handlePay = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -313,6 +355,7 @@ export default function StoreOrderPage() {
           momo_network: network,
           deadline_date: deadlineDate || undefined,
           notes: orderNotes.trim() || undefined,
+          artwork_urls: artworkUrls.length ? artworkUrls : undefined,
           items: cart.map((it, idx) => ({
             product_id: it.product_id,
             quantity: it.quantity,
@@ -454,6 +497,59 @@ export default function StoreOrderPage() {
               style={{ resize: "vertical" }}
             />
           </div>
+
+          {UPLOADS_ENABLED && (
+            <div className="form-group">
+              <label className="label">Reference image / logo (optional)</label>
+              <label
+                className={`upload-zone${dragOver ? " drag-over" : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) uploadFile(file);
+                }}
+                style={{ display: "block" }}
+              >
+                <div style={{ fontSize: "1.5rem", marginBottom: "0.25rem" }}>📎</div>
+                <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+                  {uploading ? "Uploading…" : "Tap or drop to upload"}
+                </div>
+                <div style={{ fontSize: "0.7rem", marginTop: "0.25rem" }}>
+                  PNG, JPG, WEBP · max 5MB · up to {MAX_UPLOADS} files
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  hidden
+                  disabled={uploading || artworkUrls.length >= MAX_UPLOADS}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadFile(file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {artworkUrls.length > 0 && (
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                  {artworkUrls.map((url, i) => (
+                    <div key={i} style={{ position: "relative" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`ref ${i + 1}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6, border: "1px solid var(--border)" }} />
+                      <button
+                        type="button"
+                        onClick={() => removeArtwork(i)}
+                        style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: "50%", border: "none", background: "var(--danger)", color: "white", fontSize: "0.7rem", cursor: "pointer", lineHeight: 1 }}
+                        aria-label="Remove"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {briefs.length > 0 && <BriefStrength cart={cart} briefs={briefs} />}
 

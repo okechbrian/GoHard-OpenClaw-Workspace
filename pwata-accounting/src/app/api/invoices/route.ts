@@ -1,5 +1,6 @@
 import sqlite from "@/lib/db";
 import { generateId, generateInvoiceNumber } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
@@ -18,6 +19,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const user = await getCurrentUser(request);
     const id = generateId();
     const invoiceNumber = generateInvoiceNumber();
 
@@ -28,9 +30,9 @@ export async function POST(request: NextRequest) {
     const total = subtotal + taxAmount;
 
     sqlite.prepare(`
-      INSERT INTO invoices (id, invoice_number, customer_id, subtotal, tax_rate, tax_amount, total, status, due_date, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, invoiceNumber, body.customer_id || null, subtotal, taxRate, taxAmount, total, body.status || "draft", body.due_date || null, body.notes || null);
+      INSERT INTO invoices (id, invoice_number, customer_id, subtotal, tax_rate, tax_amount, total, status, due_date, notes, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, invoiceNumber, body.customer_id || null, subtotal, taxRate, taxAmount, total, body.status || "draft", body.due_date || null, body.notes || null, user?.id ?? null);
 
     const itemStmt = sqlite.prepare(`
       INSERT INTO invoice_items (id, invoice_id, description, quantity, unit_price, total)

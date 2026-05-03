@@ -1,5 +1,6 @@
 import sqlite from "@/lib/db";
 import { generateId } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -27,12 +28,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const user = await getCurrentUser(request);
     const id = generateId();
 
     sqlite.prepare(`
-      INSERT INTO sales (id, customer_id, description, amount, payment_method, payment_status, sale_date, notes, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).run(id, body.customer_id || null, body.description, body.amount, body.payment_method, body.payment_status || "paid", body.sale_date || new Date().toISOString().split("T")[0], body.notes || null);
+      INSERT INTO sales (id, customer_id, description, amount, payment_method, payment_status, sale_date, notes, created_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(id, body.customer_id || null, body.description, body.amount, body.payment_method, body.payment_status || "paid", body.sale_date || new Date().toISOString().split("T")[0], body.notes || null, user?.id ?? null);
 
     const sale = sqlite.prepare("SELECT * FROM sales WHERE id = ?").get(id);
     return NextResponse.json(sale, { status: 201 });

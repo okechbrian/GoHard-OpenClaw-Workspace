@@ -1,5 +1,6 @@
 import sqlite from "@/lib/db";
 import { generateId } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -51,6 +52,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const user = await getCurrentUser(request);
 
     // Validate required fields
     if (!body.items || !body.items.length) {
@@ -121,8 +123,8 @@ export async function POST(request: NextRequest) {
     // Insert initial status history
     sqlite.prepare(`
       INSERT INTO order_status_history (id, order_id, status, changed_by, notes, created_at)
-      VALUES (?, ?, 'pending', null, 'Order created', datetime('now'))
-    `).run(generateId(), orderId);
+      VALUES (?, ?, 'pending', ?, 'Order created', datetime('now'))
+    `).run(generateId(), orderId, user?.id ?? null);
 
     // Fetch and return the complete order
     const order = sqlite.prepare(`

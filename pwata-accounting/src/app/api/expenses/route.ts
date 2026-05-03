@@ -1,5 +1,6 @@
 import sqlite from "@/lib/db";
 import { generateId } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/server-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -27,12 +28,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const user = await getCurrentUser(request);
     const id = generateId();
 
     sqlite.prepare(`
-      INSERT INTO expenses (id, category, description, amount, payment_method, expense_date, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, body.category, body.description, body.amount, body.payment_method, body.expense_date || new Date().toISOString().split("T")[0], body.notes || null);
+      INSERT INTO expenses (id, category, description, amount, payment_method, expense_date, notes, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, body.category, body.description, body.amount, body.payment_method, body.expense_date || new Date().toISOString().split("T")[0], body.notes || null, user?.id ?? null);
 
     const expense = sqlite.prepare("SELECT * FROM expenses WHERE id = ?").get(id);
     return NextResponse.json(expense, { status: 201 });
