@@ -21,6 +21,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     if (pathname.startsWith("/store")) return;
@@ -38,6 +39,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         if (pathname !== "/login") window.location.href = "/login";
       });
   }, [pathname]);
+
+  useEffect(() => {
+    if (pathname.startsWith("/store") || pathname === "/login" || !user) return;
+    const tick = () => {
+      fetch("/api/orders/pending-approvals")
+        .then((r) => r.json())
+        .then((d) => setPendingCount(d.count ?? 0))
+        .catch(() => { /* ignore */ });
+    };
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, [pathname, user]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/login", { method: "DELETE" });
@@ -97,10 +111,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <nav className="bottom-nav">
           {navItems.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            const showBadge = item.href === "/orders" && pendingCount > 0;
             return (
-              <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+              <Link key={item.href} href={item.href} className={active ? "active" : ""} style={{ position: "relative" }}>
                 <span className="bottom-nav-icon">{item.icon}</span>
                 {item.label}
+                {showBadge && (
+                  <span className="nav-badge">{pendingCount > 9 ? "9+" : pendingCount}</span>
+                )}
               </Link>
             );
           })}
