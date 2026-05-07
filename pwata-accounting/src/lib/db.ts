@@ -181,6 +181,18 @@ sqlite.exec(`
     notes TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  -- Daily cash close / drawer reconciliation
+  CREATE TABLE IF NOT EXISTS cash_closes (
+    id TEXT PRIMARY KEY,
+    close_date TEXT UNIQUE NOT NULL,
+    expected_cash REAL NOT NULL,
+    actual_cash REAL NOT NULL,
+    difference REAL NOT NULL,
+    notes TEXT,
+    closed_by TEXT REFERENCES users(id),
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 // Add a column to a table if it doesn't already exist.

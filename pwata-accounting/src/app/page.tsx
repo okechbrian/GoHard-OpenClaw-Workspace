@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { formatUGX, formatDate } from "@/lib/utils";
 
 interface DashboardData {
@@ -13,19 +14,64 @@ interface DashboardData {
   topCustomers: Array<{ name: string; orders: number; total_spent: number }>;
 }
 
+interface OrderStats {
+  pending: number;
+  in_design: number;
+  printing: number;
+  ready_for_delivery: number;
+  totalActive: number;
+  storeNewOrders: number;
+  createdToday: number;
+  completedToday: number;
+}
+
+interface CashClose {
+  today: string;
+  expected: number;
+  todayClose: { actual_cash: number; difference: number; notes: string | null } | null;
+  history: Array<{ close_date: string; expected_cash: number; actual_cash: number; difference: number }>;
+}
+
 export default function HomePage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
+  const [cashClose, setCashClose] = useState<CashClose | null>(null);
+  const [cashInput, setCashInput] = useState("");
+  const [cashNotes, setCashNotes] = useState("");
+  const [cashSaving, setCashSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
   const [searching, setSearching] = useState(false);
 
+  const loadCashClose = () =>
+    fetch("/api/cash-close").then((r) => r.json()).then(setCashClose).catch(() => {});
+
   useEffect(() => {
-    fetch("/api/reports")
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    Promise.all([
+      fetch("/api/reports").then((r) => r.json()),
+      fetch("/api/orders/stats").then((r) => r.json()),
+    ])
+      .then(([report, stats]) => { setData(report); setOrderStats(stats); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    loadCashClose();
   }, []);
+
+  const handleCashClose = async () => {
+    const actual = parseFloat(cashInput.replace(/,/g, ""));
+    if (isNaN(actual)) return;
+    setCashSaving(true);
+    await fetch("/api/cash-close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actual_cash: actual, notes: cashNotes || undefined }),
+    });
+    await loadCashClose();
+    setCashInput("");
+    setCashNotes("");
+    setCashSaving(false);
+  };
 
   const handleSearch = async (q: string) => {
     setSearchQuery(q);
@@ -120,6 +166,78 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Orders Operations Widget */}
+      {orderStats && (
+        <div className="card" style={{ marginTop: "1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+            <h2 style={{ fontSize: "1rem", fontWeight: 600 }}>
+              Active Orders
+              {orderStats.totalActive > 0 && (
+                <span style={{ marginLeft: "0.5rem", background: "var(--primary)", color: "white", borderRadius: "9999px", padding: "0.1rem 0.5rem", fontSize: "0.7rem", fontWeight: 700 }}>
+                  {orderStats.totalActive}
+                </span>
+              )}
+            </h2>
+            <Link href="/orders/kanban" style={{ fontSize: "0.75rem", color: "var(--primary)", textDecoration: "none", fontWeight: 600 }}>
+              Kanban →
+            </Link>
+          </div>
+
+          {orderStats.storeNewOrders > 0 && (
+            <div style={{ background: "rgba(245,158,11,0.1)", border: "1px solid var(--warning)", borderRadius: "8px", padding: "0.5rem 0.75rem", marginBottom: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>
+                ⚠️ {orderStats.storeNewOrders} new store order{orderStats.storeNewOrders !== 1 ? "s" : ""} awaiting review
+              </span>
+              <Link href="/orders?status=in_design" style={{ fontSize: "0.75rem", color: "var(--warning)", textDecoration: "none", fontWeight: 700 }}>
+                Review →
+              </Link>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            {[
+              { key: "pending", label: "Pending", color: "#f59e0b", icon: "⏳" },
+              { key: "in_design", label: "In Design", color: "#6366f1", icon: "🎨" },
+              { key: "printing", label: "Printing", color: "#3b82f6", icon: "🖨️" },
+              { key: "ready_for_delivery", label: "Ready", color: "#22c55e", icon: "📦" },
+            ].map(({ key, label, color, icon }) => {
+              const count = orderStats[key as keyof OrderStats] as number;
+              return (
+                <Link
+                  key={key}
+                  href={`/orders?status=${key}`}
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  <div style={{ background: "var(--bg-input)", borderRadius: "8px", padding: "0.625rem 0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", border: count > 0 ? `1px solid ${color}33` : "1px solid transparent" }}>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{icon} {label}</span>
+                    <span style={{ fontWeight: 700, fontSize: "1.1rem", color: count > 0 ? color : "var(--text-muted)" }}>
+                      {count}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {(orderStats.createdToday > 0 || orderStats.completedToday > 0) && (
+            <div style={{ display: "flex", gap: "1rem", marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              {orderStats.createdToday > 0 && (
+                <span>🆕 {orderStats.createdToday} new today</span>
+              )}
+              {orderStats.completedToday > 0 && (
+                <span style={{ color: "#22c55e" }}>✅ {orderStats.completedToday} completed today</span>
+              )}
+            </div>
+          )}
+
+          {orderStats.totalActive === 0 && (
+            <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "0.875rem", paddingTop: "0.5rem" }}>
+              No active orders. <Link href="/orders/new" style={{ color: "var(--primary)" }}>Create one →</Link>
+            </p>
+          )}
+        </div>
+      )}
+
       {data?.outstandingInvoices ? (
         <div className="card" style={{ marginTop: "1rem", borderColor: "var(--warning)" }}>
           <p style={{ fontSize: "0.875rem" }}>
@@ -173,6 +291,96 @@ export default function HomePage() {
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>No customers yet</p>
         )}
       </div>
+
+      {/* Daily Cash Close */}
+      {cashClose && (
+        <div className="card" style={{ marginTop: "1rem" }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem" }}>💵 Daily Cash Close</h2>
+
+          <div style={{ background: "var(--bg-input)", borderRadius: "8px", padding: "0.75rem", marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Expected cash today</span>
+              <span style={{ fontWeight: 700, color: cashClose.expected >= 0 ? "#22c55e" : "#ef4444" }}>
+                {cashClose.expected >= 0 ? "+" : ""}{formatUGX(cashClose.expected)}
+              </span>
+            </div>
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+              Cash sales − cash expenses for {cashClose.today}
+            </p>
+          </div>
+
+          {cashClose.todayClose ? (
+            <div style={{ background: Math.abs(cashClose.todayClose.difference) < 1000 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${Math.abs(cashClose.todayClose.difference) < 1000 ? "var(--success)" : "var(--danger)"}`, borderRadius: "8px", padding: "0.75rem", marginBottom: "0.75rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                <span style={{ fontSize: "0.875rem" }}>Actual counted</span>
+                <span style={{ fontWeight: 700 }}>{formatUGX(cashClose.todayClose.actual_cash)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "0.875rem" }}>Difference</span>
+                <span style={{ fontWeight: 700, color: Math.abs(cashClose.todayClose.difference) < 1000 ? "#22c55e" : "#ef4444" }}>
+                  {cashClose.todayClose.difference >= 0 ? "+" : ""}{formatUGX(cashClose.todayClose.difference)}
+                  {" "}{Math.abs(cashClose.todayClose.difference) < 1000 ? "✓" : "⚠️"}
+                </span>
+              </div>
+              {cashClose.todayClose.notes && (
+                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.375rem" }}>{cashClose.todayClose.notes}</p>
+              )}
+              <button
+                style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                onClick={() => { setCashInput(String(cashClose.todayClose!.actual_cash)); setCashNotes(cashClose.todayClose!.notes ?? ""); }}
+              >
+                Edit
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="form-group" style={{ marginBottom: "0.5rem" }}>
+                <label className="label">Actual cash in drawer (UGX)</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="e.g. 145000"
+                  value={cashInput}
+                  onChange={(e) => setCashInput(e.target.value)}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: "0.5rem" }}>
+                <label className="label">Note (optional)</label>
+                <input
+                  className="input"
+                  placeholder="e.g. 5000 short — gave change from pocket"
+                  value={cashNotes}
+                  onChange={(e) => setCashNotes(e.target.value)}
+                />
+              </div>
+              <button
+                className="btn btn-primary"
+                style={{ width: "100%", justifyContent: "center" }}
+                disabled={cashSaving || !cashInput}
+                onClick={handleCashClose}
+              >
+                {cashSaving ? "Saving…" : "Record Cash Close"}
+              </button>
+            </>
+          )}
+
+          {cashClose.history.length > 0 && (
+            <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
+              <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Last 7 days</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {cashClose.history.map((h) => (
+                  <div key={h.close_date} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+                    <span style={{ color: "var(--text-muted)" }}>{h.close_date}</span>
+                    <span style={{ color: Math.abs(h.difference) < 1000 ? "#22c55e" : "#ef4444", fontWeight: 600 }}>
+                      {h.difference >= 0 ? "+" : ""}{formatUGX(h.difference)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -34,7 +34,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ORDER BY h.created_at ASC
     `).all(orderId);
 
-    return NextResponse.json({ ...order, items, statusHistory });
+    // Get linked invoice if one was auto-generated
+    const invoice = sqlite.prepare(
+      "SELECT id, invoice_number, status, total FROM invoices WHERE order_id = ? LIMIT 1"
+    ).get(orderId) as any;
+
+    return NextResponse.json({ ...order, items, statusHistory, invoice: invoice ?? null });
 
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
@@ -95,7 +100,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       ORDER BY h.created_at ASC
     `).all(orderId);
 
-    return NextResponse.json({ ...(updatedOrder as object), items, statusHistory });
+    const invoice = sqlite.prepare(
+      "SELECT id, invoice_number, status, total FROM invoices WHERE order_id = ? LIMIT 1"
+    ).get(orderId) as any;
+
+    return NextResponse.json({ ...(updatedOrder as object), items, statusHistory, invoice: invoice ?? null });
 
   } catch (error) {
     console.error("Order update error:", error);

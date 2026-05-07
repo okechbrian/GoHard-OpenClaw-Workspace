@@ -47,6 +47,7 @@ interface OrderDetail {
   created_at: string;
   items: OrderItem[];
   statusHistory: StatusHistoryEntry[];
+  invoice: { id: string; invoice_number: string; status: string; total: number } | null;
 }
 
 const STATUS_OPTIONS = [
@@ -190,6 +191,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <div style={{ textAlign: "right" }}>
           <StatusBadge status={order.status} />
           <p style={{ fontSize: "1.5rem", fontWeight: 700, marginTop: "0.25rem", color: "#22c55e" }}>{formatUGX(order.total_amount)}</p>
+          {order.invoice && (
+            <a
+              href={`/api/invoices/${order.invoice.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost"
+              style={{ marginTop: "0.375rem", fontSize: "0.75rem", padding: "0.25rem 0.625rem", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}
+            >
+              🧾 {order.invoice.invoice_number}
+            </a>
+          )}
         </div>
       </header>
 

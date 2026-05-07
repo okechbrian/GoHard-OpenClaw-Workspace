@@ -9,6 +9,7 @@ interface ReportData {
   expensesByCategory: Array<{ category: string; total: number }>;
   dailySales: Array<{ date: string; total: number }>;
   topCustomers: Array<{ name: string; orders: number; total_spent: number }>;
+  revenueBySource: Array<{ source: string; count: number; total: number }>;
 }
 
 const paymentLabels: Record<string, string> = { cash: "💵 Cash", mtn_momo: "📱 MTN MoMo", airtel_money: "📱 Airtel Money" };
@@ -124,6 +125,34 @@ export default function ReportsPage() {
           </div>
         ) : <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>No expenses yet</p>}
       </div>
+
+      {/* Revenue by Source */}
+      {data?.revenueBySource?.length ? (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem" }}>Revenue by Source</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {[
+              { key: "store", label: "🛍️ Online Store", color: "#6366f1" },
+              { key: "admin", label: "📋 Admin Orders", color: "#3b82f6" },
+              { key: "standalone", label: "💰 Direct Sales", color: "#22c55e" },
+            ].map(({ key, label, color }) => {
+              const row = data.revenueBySource.find((r) => r.source === key);
+              if (!row) return null;
+              return (
+                <div key={key}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                    <span style={{ fontSize: "0.875rem" }}>{label} <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>({row.count})</span></span>
+                    <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>{formatUGX(row.total)}</span>
+                  </div>
+                  <div style={{ height: "6px", background: "var(--bg-input)", borderRadius: "3px" }}>
+                    <div style={{ height: "100%", width: `${(row.total / (data?.revenue || 1)) * 100}%`, background: color, borderRadius: "3px" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {/* Top Customers */}
       <div className="card" style={{ marginBottom: "1rem" }}>

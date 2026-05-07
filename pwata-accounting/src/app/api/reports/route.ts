@@ -20,6 +20,23 @@ export async function GET(request: NextRequest) {
     const outstandingInvoices = sqlite.prepare(`SELECT COALESCE(SUM(total), 0) as total FROM invoices WHERE status IN ('sent', 'overdue')`).get() as any;
     const topCustomers = sqlite.prepare(`SELECT c.name, COUNT(s.id) as orders, SUM(s.amount) as total_spent FROM sales s JOIN customers c ON s.customer_id = c.id WHERE s.payment_status = 'paid' GROUP BY c.id ORDER BY total_spent DESC LIMIT 5`).all();
 
+    // Revenue by order origin
+    const revenueBySource = sqlite.prepare(`
+      SELECT
+        CASE
+          WHEN s.order_id IS NULL THEN 'standalone'
+          WHEN o.source = 'store' THEN 'store'
+          ELSE 'admin'
+        END as source,
+        COUNT(s.id) as count,
+        COALESCE(SUM(s.amount), 0) as total
+      FROM sales s
+      LEFT JOIN orders o ON s.order_id = o.id
+      WHERE s.payment_status = 'paid'
+        AND s.sale_date >= ? AND s.sale_date <= ?
+      GROUP BY source
+    `).all(from, to);
+
     const revenue = totalSales.total;
     const expenses = totalExpenses.total;
     const profit = revenue - expenses;
@@ -37,6 +54,7 @@ export async function GET(request: NextRequest) {
       monthlyExpenses,
       outstandingInvoices: outstandingInvoices.total,
       topCustomers,
+      revenueBySource,
     });
   } catch (error) {
     return NextResponse.json({ error: "Failed to generate report" }, { status: 500 });

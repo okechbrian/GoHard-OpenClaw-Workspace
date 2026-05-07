@@ -41,3 +41,13 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+.env*.local
+
+# local sqlite database
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# scratch / local-only files
+test-summary.pdf
+tailwind.config.js

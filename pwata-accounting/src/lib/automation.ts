@@ -94,18 +94,10 @@ export async function onOrderStatusChange(
           );
         }
 
-        // Generate PDF receipt (simplified for now - will enhance in later prompt)
-        pdfUrl = `/invoices/${invoiceNumber}.pdf`;
+        // Invoice HTML (print-to-PDF) is served at /api/invoices/{id}/pdf
+        pdfUrl = `/api/invoices/${invoiceId}/pdf`;
 
-        console.log("📄 PDF receipt would be generated for:", {
-          invoiceNumber,
-          customer: order.customer_name || order.guest_name,
-          total: formatUGX(order.total_amount),
-          items: order.items.length
-        });
-
-        console.log("📧 Email would be sent to customer with PDF");
-        console.log("✅ Automation triggered for order", order.order_number, "— Sale + Invoice + PDF created");
+        console.log("✅ Automation triggered for order", order.order_number, "— Sale + Invoice created. Invoice URL:", pdfUrl);
       }
     }
 
