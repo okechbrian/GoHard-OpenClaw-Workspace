@@ -36,13 +36,13 @@ export async function GET(request: NextRequest) {
     `;
 
     const monthlySales = await sql`
-      SELECT TO_CHAR(sale_date, 'YYYY-MM') AS month, SUM(amount) AS total
+      SELECT TO_CHAR(sale_date::date, 'YYYY-MM') AS month, SUM(amount) AS total
       FROM sales WHERE payment_status = 'paid'
       GROUP BY month ORDER BY month DESC LIMIT 12
     `;
 
     const monthlyExpenses = await sql`
-      SELECT TO_CHAR(expense_date, 'YYYY-MM') AS month, SUM(amount) AS total
+      SELECT TO_CHAR(expense_date::date, 'YYYY-MM') AS month, SUM(amount) AS total
       FROM expenses GROUP BY month ORDER BY month DESC LIMIT 12
     `;
 
@@ -58,16 +58,18 @@ export async function GET(request: NextRequest) {
     `;
 
     const revenueBySource = await sql`
-      SELECT
-        CASE
-          WHEN s.order_id IS NULL THEN 'standalone'
-          WHEN o.source = 'store' THEN 'store'
-          ELSE 'admin'
-        END AS source,
-        COUNT(s.id)::int AS count,
-        COALESCE(SUM(s.amount), 0) AS total
-      FROM sales s LEFT JOIN orders o ON s.order_id = o.id
-      WHERE s.payment_status = 'paid' AND s.sale_date >= ${from} AND s.sale_date <= ${to}
+      SELECT source, COUNT(*)::int AS count, COALESCE(SUM(amount), 0) AS total
+      FROM (
+        SELECT
+          CASE
+            WHEN s.order_id IS NULL THEN 'standalone'
+            WHEN o.source = 'store' THEN 'store'
+            ELSE 'admin'
+          END AS source,
+          s.id, s.amount
+        FROM sales s LEFT JOIN orders o ON s.order_id = o.id
+        WHERE s.payment_status = 'paid' AND s.sale_date >= ${from} AND s.sale_date <= ${to}
+      ) sub
       GROUP BY source
     `;
 
