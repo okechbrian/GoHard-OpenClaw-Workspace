@@ -7,11 +7,11 @@ export interface ServicePackage {
   description: string;
 }
 
-export const SERVICE_META: Record<ServiceType, { label: string; icon: string; tagline: string; color: string }> = {
-  merchandise: { label: "Merchandise", icon: "👕", tagline: "T-shirts, hoodies, mugs, caps & more", color: "#ff7b00" },
-  logo: { label: "Logo & Branding", icon: "✦", tagline: "Logo design, brand identity, guidelines", color: "#7c3aed" },
-  social: { label: "Social Media", icon: "📱", tagline: "Instagram, Facebook, LinkedIn graphics", color: "#0ea5e9" },
-  print: { label: "Print & Flyers", icon: "🖨️", tagline: "Flyers, menus, business cards, posters", color: "#22c55e" },
+export const SERVICE_META: Record<ServiceType, { label: string; tagline: string; accent: string }> = {
+  merchandise: { label: "Merchandise", tagline: "T-shirts, hoodies, mugs, caps & more",      accent: "#ff7b00" },
+  logo:        { label: "Logo & Branding", tagline: "Logo design, brand identity, guidelines", accent: "#f43f5e" },
+  social:      { label: "Social Media",    tagline: "Instagram, Facebook, LinkedIn graphics",  accent: "#22c55e" },
+  print:       { label: "Print & Flyers",  tagline: "Flyers, menus, business cards, posters",  accent: "#f59e0b" },
 };
 
 export const LOGO_PACKAGES: ServicePackage[] = [

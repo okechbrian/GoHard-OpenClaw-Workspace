@@ -28,7 +28,7 @@ export default function LogoBrief({ brief, onChange }: Props) {
 
   return (
     <div>
-      <p className="label" style={{ marginBottom: "0.75rem" }}>Choose a package</p>
+      <p className="section-head" style={{ marginTop: 0 }}>Choose a package</p>
       <div className="package-grid">
         {LOGO_PACKAGES.map((pkg) => (
           <button
@@ -44,6 +44,8 @@ export default function LogoBrief({ brief, onChange }: Props) {
         ))}
       </div>
 
+      <p className="section-head">Business basics</p>
+
       <div className="form-group">
         <label className="label">Business name *</label>
         <input className="input" placeholder="e.g. Kizibazi FC" value={brief.business_name} onChange={(e) => set("business_name", e.target.value)} />
@@ -58,6 +60,8 @@ export default function LogoBrief({ brief, onChange }: Props) {
         <label className="label">Brand personality (3 words)</label>
         <input className="input" placeholder="e.g. Bold, energetic, youthful" value={brief.brand_personality} onChange={(e) => set("brand_personality", e.target.value)} />
       </div>
+
+      <p className="section-head">Style direction</p>
 
       <div className="form-group">
         <label className="label">Style preference</label>

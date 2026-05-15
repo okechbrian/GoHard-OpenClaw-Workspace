@@ -27,6 +27,8 @@ export default function PrintBrief({ brief, onChange }: Props) {
 
   return (
     <div>
+      <p className="section-head" style={{ marginTop: 0 }}>What we're making</p>
+
       <div className="form-group">
         <label className="label">What do you need designed? *</label>
         <div className="style-pills">
@@ -55,6 +57,8 @@ export default function PrintBrief({ brief, onChange }: Props) {
           ))}
         </div>
       </div>
+
+      <p className="section-head">Content & style</p>
 
       <div className="form-group">
         <label className="label">All content / text to include *</label>

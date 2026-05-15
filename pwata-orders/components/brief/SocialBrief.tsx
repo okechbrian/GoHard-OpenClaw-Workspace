@@ -42,6 +42,8 @@ export default function SocialBrief({ brief, onChange }: Props) {
 
   return (
     <div>
+      <p className="section-head" style={{ marginTop: 0 }}>Where will it run?</p>
+
       <div className="form-group">
         <label className="label">Platforms *</label>
         <div className="style-pills">
@@ -79,6 +81,8 @@ export default function SocialBrief({ brief, onChange }: Props) {
           </span>
         </div>
       </div>
+
+      <p className="section-head">Content & purpose</p>
 
       <div className="form-group">
         <label className="label">Content / text to include *</label>

@@ -48,15 +48,16 @@ export default function AIBriefAssistant({ serviceType, onFill }: Props) {
   return (
     <>
       <button type="button" className="ai-fab" onClick={() => setOpen(true)}>
-        ✨ Describe your idea
+        <span style={{ fontSize: "1rem", lineHeight: 1 }}>✨</span>
+        Describe your idea
       </button>
 
       {open && (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget && !loading) setOpen(false); }}>
-          <div className="modal">
+          <div className="modal" style={{ borderTop: "2px solid var(--primary)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <div>
-                <h3 style={{ fontSize: "1rem" }}>✨ AI Brief Assistant</h3>
+                <h3 style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}>✨ AI Brief Assistant</h3>
                 <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Describe your idea — we'll fill in the form for you.</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "1.25rem", cursor: "pointer" }}>✕</button>
@@ -79,10 +80,10 @@ export default function AIBriefAssistant({ serviceType, onFill }: Props) {
 
             <button
               type="button"
-              className="btn btn-full"
+              className="btn btn-full btn-lg"
               disabled={!text.trim() || loading}
               onClick={handleSubmit}
-              style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", color: "white", border: "none" }}
+              style={{ background: "linear-gradient(135deg, var(--primary), var(--rose))", color: "white", border: "none", boxShadow: "0 6px 20px rgba(244,63,94,.25)" }}
             >
               {loading ? "Thinking..." : "✨ Fill my brief"}
             </button>
@@ -92,6 +93,10 @@ export default function AIBriefAssistant({ serviceType, onFill }: Props) {
                 Analysing your description...
               </p>
             )}
+
+            <p style={{ textAlign: "center", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "1rem", letterSpacing: ".04em" }}>
+              Powered by Claude · Your description stays private
+            </p>
           </div>
         </div>
       )}

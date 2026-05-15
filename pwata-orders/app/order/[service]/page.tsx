@@ -191,14 +191,44 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
   const estimatedDeposit = Math.ceil(estimatedTotal * 0.5);
 
   const stepLabels = ["Brief", "Details", "Review", "Payment"];
+  const stepHeadings = [
+    "Tell us about your project",
+    "How can we reach you?",
+    "Confirm & pay deposit",
+    "Processing payment",
+  ];
+  const progressPct = Math.round(((step - 1) / 3) * 100);
+
+  // Brief strength (0-3 filled segments)
+  const briefStrength = (() => {
+    if (serviceType === "logo") {
+      const filled = [logoBrief.business_name, logoBrief.style_preference, logoBrief.intended_use, logoBrief.color_preference].filter((v) => v && String(v).trim()).length;
+      return Math.min(3, filled);
+    }
+    if (serviceType === "social") {
+      const filled = [socialBrief.platforms.length > 0, socialBrief.post_type, socialBrief.content_text, socialBrief.purpose, socialBrief.deadline].filter(Boolean).length;
+      return Math.min(3, Math.floor(filled / 2) + (filled > 0 ? 1 : 0));
+    }
+    if (serviceType === "print") {
+      const filled = [printBrief.print_type, printBrief.size, printBrief.content_text, printBrief.style, printBrief.color_scheme].filter((v) => v && String(v).trim()).length;
+      return Math.min(3, Math.floor(filled / 2) + (filled > 0 ? 1 : 0));
+    }
+    // merch: 1 for items, 2 if all have print text, 3 if any have style+placement
+    if (merchCart.length === 0) return 0;
+    const allText = merchCart.every((c) => !!c.print_text?.trim());
+    const anyStyled = merchCart.some((c) => !!c.style && !!c.placement);
+    return 1 + (allText ? 1 : 0) + (anyStyled ? 1 : 0);
+  })();
 
   return (
     <div className="container" style={{ paddingTop: "1rem" }}>
       {/* Service header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "1.25rem" }}>
-        <span style={{ fontSize: "1.5rem" }}>{meta.icon}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "1.25rem" }}>
+        <span style={{ width: 36, height: 36, borderRadius: 10, display: "grid", placeItems: "center", background: `${meta.accent}22`, color: meta.accent, fontWeight: 900, fontSize: ".95rem" }}>
+          {meta.label[0]}
+        </span>
         <div>
-          <h2 style={{ fontWeight: 800, fontSize: "1rem" }}>{meta.label}</h2>
+          <h2 style={{ fontWeight: 800, fontSize: "1rem", letterSpacing: "-0.01em" }}>{meta.label}</h2>
           <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{meta.tagline}</p>
         </div>
       </div>
@@ -223,6 +253,9 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
         })}
       </div>
 
+      {/* Step heading */}
+      <p className="section-head">{stepHeadings[step - 1]}</p>
+
       {/* Step 1: Brief */}
       {step === 1 && (
         <>
@@ -230,14 +263,34 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
           {serviceType === "social" && <SocialBrief brief={socialBrief} onChange={setSocialBrief} />}
           {serviceType === "print" && <PrintBrief brief={printBrief} onChange={setPrintBrief} />}
           {serviceType === "merchandise" && <MerchBrief cart={merchCart} onChange={setMerchCart} />}
+
+          {/* Brief strength meter */}
+          <div className="brief-strength">
+            <span className="brief-strength-label">
+              Brief strength: <strong>{["Add more details", "Getting there", "Solid brief", "Excellent brief"][briefStrength]}</strong>
+            </span>
+            <div className="brief-strength-bar">
+              {[0, 1, 2].map((i) => (
+                <div key={i}
+                  className={`brief-strength-segment${i < briefStrength ? (briefStrength === 3 ? " filled-complete" : " filled") : ""}`}
+                />
+              ))}
+            </div>
+          </div>
+
           <AIBriefAssistant serviceType={serviceType} onFill={handleAIFill} />
           <div className="sticky-cta">
-            <a href="/" className="btn btn-ghost" style={{ textDecoration: "none" }}>← Back</a>
-            <button type="button" className="btn btn-primary btn-full btn-lg"
-              disabled={!isBriefValid()}
-              onClick={() => setStep(2)}>
-              Continue to details →
-            </button>
+            <div className="sticky-cta-inner" style={{ flexDirection: "column", gap: 0 }}>
+              <div className="sticky-progress">Step <strong>{step}</strong> of 4 · {progressPct}% complete</div>
+              <div style={{ display: "flex", gap: ".6rem", width: "100%" }}>
+                <a href="/" className="btn btn-ghost" style={{ textDecoration: "none" }}>← Back</a>
+                <button type="button" className="btn btn-primary btn-full btn-lg"
+                  disabled={!isBriefValid()}
+                  onClick={() => setStep(2)}>
+                  Continue to details →
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -286,12 +339,17 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
             </div>
           </div>
           <div className="sticky-cta">
-            <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
-            <button type="button" className="btn btn-primary btn-full btn-lg"
-              disabled={!isDetailsValid()}
-              onClick={() => setStep(3)}>
-              Review order →
-            </button>
+            <div className="sticky-cta-inner" style={{ flexDirection: "column", gap: 0 }}>
+              <div className="sticky-progress">Step <strong>{step}</strong> of 4 · {progressPct}% complete</div>
+              <div style={{ display: "flex", gap: ".6rem", width: "100%" }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>
+                <button type="button" className="btn btn-primary btn-full btn-lg"
+                  disabled={!isDetailsValid()}
+                  onClick={() => setStep(3)}>
+                  Review order →
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}
@@ -346,12 +404,17 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
           )}
 
           <div className="sticky-cta">
-            <button type="button" className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
-            <button type="button" className="btn btn-primary btn-full btn-lg"
-              disabled={processing}
-              onClick={handlePay}>
-              {processing ? "Processing..." : `Pay ${formatUGX(estimatedDeposit)} deposit`}
-            </button>
+            <div className="sticky-cta-inner" style={{ flexDirection: "column", gap: 0 }}>
+              <div className="sticky-progress">Step <strong>{step}</strong> of 4 · {progressPct}% complete</div>
+              <div style={{ display: "flex", gap: ".6rem", width: "100%" }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
+                <button type="button" className="btn btn-primary btn-full btn-lg"
+                  disabled={processing}
+                  onClick={handlePay}>
+                  {processing ? "Processing..." : `Pay ${formatUGX(estimatedDeposit)} deposit`}
+                </button>
+              </div>
+            </div>
           </div>
         </>
       )}

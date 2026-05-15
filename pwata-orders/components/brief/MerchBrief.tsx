@@ -62,6 +62,7 @@ export default function MerchBrief({ cart, onChange }: Props) {
 
   return (
     <div>
+      <p className="section-head" style={{ marginTop: 0 }}>Browse products</p>
       {/* Category tabs */}
       <div className="category-tabs" style={{ marginBottom: "0.5rem" }}>
         {CATEGORIES.map((c) => (
@@ -93,9 +94,10 @@ export default function MerchBrief({ cart, onChange }: Props) {
       {/* Cart summary */}
       {cart.length > 0 && (
         <div style={{ marginTop: "1rem" }}>
+          <p className="section-head">Your design briefs</p>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
             <span style={{ fontWeight: 700 }}>Cart ({totalItems} item{totalItems !== 1 ? "s" : ""})</span>
-            <span style={{ color: "var(--primary)", fontWeight: 800 }}>{formatUGX(totalPrice)}</span>
+            <span style={{ color: "var(--primary)", fontWeight: 800 }} className="num">{formatUGX(totalPrice)}</span>
           </div>
           {cart.map((item, idx) => (
             <div key={idx} className="brief-card" style={{ marginBottom: "0.75rem" }}>

@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 const navItems = [
   { href: "/", label: "Home", icon: "🏠" },
@@ -60,7 +67,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   if (pathname === "/login" || pathname.startsWith("/store")) {
     return (
-      <html lang="en">
+      <html lang="en" className={inter.variable}>
         <head>
           <title>Pwata Creatives</title>
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -74,7 +81,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <html lang="en">
+      <html lang="en" className={inter.variable}>
         <head><title>Pwata Creatives</title></head>
         <body><div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>Loading...</div></body>
       </html>
@@ -86,21 +93,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <title>Pwata Creatives — Accounting</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <meta name="theme-color" content="#0f172a" />
+        <meta name="theme-color" content="#0a0a0a" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
         {/* Top bar */}
-        <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0.5rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <img src="/logo.jpg" alt="Pwata Creatives" style={{ height: "24px", width: "24px", borderRadius: "4px" }} />
-            <span style={{ fontWeight: 700, color: "#6366f1", fontSize: "0.875rem" }}>Pwata</span>
+        <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(22,22,22,.85)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "0.65rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div className="brand-mark">
+            <span className="logo">P</span>
+            <span className="brand-name">
+              <b>Pwata Creatives</b>
+              <small>Accounting</small>
+            </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{user?.name}</span>
-            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.75rem" }}>Logout</button>
+            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "inherit" }}>Logout</button>
           </div>
         </div>
 
