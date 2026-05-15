@@ -1,4 +1,4 @@
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 import { corsHeaders, handlePreflight, checkApiKey } from "@/lib/store-cors";
 import { generateId } from "@/lib/utils";
 import { initiateCharge } from "@/lib/flutterwave";
@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers });
     }
 
-    const order = sqlite.prepare(
-      "SELECT id, order_number, deposit_amount, payment_status, source FROM orders WHERE id = ?"
-    ).get(order_id) as any;
+    const rows = await sql`
+      SELECT id, order_number, deposit_amount, payment_status, source FROM orders WHERE id = ${order_id}
+    ` as any[];
+    const order = rows[0];
 
     if (!order || order.source !== "store") {
       return NextResponse.json({ error: "Order not found" }, { status: 404, headers });
@@ -39,13 +40,13 @@ export async function POST(request: NextRequest) {
     }
 
     const txRef = generateId();
-    sqlite.prepare("UPDATE orders SET payment_reference = ? WHERE id = ?").run(txRef, order_id);
+    await sql`UPDATE orders SET payment_reference = ${txRef} WHERE id = ${order_id}`;
 
     const emailFallback = customer_email?.trim() ||
       `${phone_number.replace(/\D/g, "")}@orders.pwata.ug`;
 
     const result = await initiateCharge({
-      amount: order.deposit_amount,
+      amount: Number(order.deposit_amount),
       email: emailFallback,
       phone_number,
       network: network as "MTN" | "AIRTEL",

@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 
 interface SessionUser {
   id: string;
@@ -28,16 +28,16 @@ export async function getCurrentUser(request: NextRequest): Promise<SessionUser 
 
   try {
     if (payload.id) {
-      const row = sqlite.prepare(
-        "SELECT id, name, email, role FROM users WHERE id = ?"
-      ).get(payload.id) as SessionUser | undefined;
-      if (row) return row;
+      const rows = await sql`
+        SELECT id, name, email, role FROM users WHERE id = ${payload.id}
+      ` as SessionUser[];
+      if (rows[0]) return rows[0];
     }
     if (payload.email) {
-      const row = sqlite.prepare(
-        "SELECT id, name, email, role FROM users WHERE email = ?"
-      ).get(payload.email) as SessionUser | undefined;
-      if (row) return row;
+      const rows = await sql`
+        SELECT id, name, email, role FROM users WHERE email = ${payload.email}
+      ` as SessionUser[];
+      if (rows[0]) return rows[0];
     }
   } catch {
     // fall through to cookie payload

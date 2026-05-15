@@ -1,4 +1,4 @@
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -7,44 +7,78 @@ export async function GET(request: NextRequest) {
     const from = searchParams.get("from") || "2000-01-01";
     const to = searchParams.get("to") || "2099-12-31";
 
-    const totalSales = sqlite.prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM sales WHERE sale_date >= ? AND sale_date <= ? AND payment_status = 'paid'`).get(from, to) as any;
-    const totalExpenses = sqlite.prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM expenses WHERE expense_date >= ? AND expense_date <= ?`).get(from, to) as any;
+    const totalSales = (await sql`
+      SELECT COALESCE(SUM(amount), 0) AS total FROM sales
+      WHERE sale_date >= ${from} AND sale_date <= ${to} AND payment_status = 'paid'
+    ` as any[])[0];
 
-    const salesByMethod = sqlite.prepare(`SELECT payment_method, COUNT(*) as count, SUM(amount) as total FROM sales WHERE sale_date >= ? AND sale_date <= ? AND payment_status = 'paid' GROUP BY payment_method`).all(from, to);
-    const expensesByCategory = sqlite.prepare(`SELECT category, SUM(amount) as total FROM expenses WHERE expense_date >= ? AND expense_date <= ? GROUP BY category ORDER BY total DESC`).all(from, to);
-    const dailySales = sqlite.prepare(`SELECT sale_date as date, SUM(amount) as total FROM sales WHERE sale_date >= ? AND sale_date <= ? AND payment_status = 'paid' GROUP BY sale_date ORDER BY sale_date`).all(from, to);
+    const totalExpenses = (await sql`
+      SELECT COALESCE(SUM(amount), 0) AS total FROM expenses
+      WHERE expense_date >= ${from} AND expense_date <= ${to}
+    ` as any[])[0];
 
-    const monthlySales = sqlite.prepare(`SELECT strftime('%Y-%m', sale_date) as month, SUM(amount) as total FROM sales WHERE payment_status = 'paid' GROUP BY month ORDER BY month DESC LIMIT 12`).all();
-    const monthlyExpenses = sqlite.prepare(`SELECT strftime('%Y-%m', expense_date) as month, SUM(amount) as total FROM expenses GROUP BY month ORDER BY month DESC LIMIT 12`).all();
+    const salesByMethod = await sql`
+      SELECT payment_method, COUNT(*)::int AS count, SUM(amount) AS total
+      FROM sales WHERE sale_date >= ${from} AND sale_date <= ${to} AND payment_status = 'paid'
+      GROUP BY payment_method
+    `;
 
-    const outstandingInvoices = sqlite.prepare(`SELECT COALESCE(SUM(total), 0) as total FROM invoices WHERE status IN ('sent', 'overdue')`).get() as any;
-    const topCustomers = sqlite.prepare(`SELECT c.name, COUNT(s.id) as orders, SUM(s.amount) as total_spent FROM sales s JOIN customers c ON s.customer_id = c.id WHERE s.payment_status = 'paid' GROUP BY c.id ORDER BY total_spent DESC LIMIT 5`).all();
+    const expensesByCategory = await sql`
+      SELECT category, SUM(amount) AS total FROM expenses
+      WHERE expense_date >= ${from} AND expense_date <= ${to}
+      GROUP BY category ORDER BY total DESC
+    `;
 
-    // Revenue by order origin
-    const revenueBySource = sqlite.prepare(`
+    const dailySales = await sql`
+      SELECT sale_date AS date, SUM(amount) AS total FROM sales
+      WHERE sale_date >= ${from} AND sale_date <= ${to} AND payment_status = 'paid'
+      GROUP BY sale_date ORDER BY sale_date
+    `;
+
+    const monthlySales = await sql`
+      SELECT TO_CHAR(sale_date, 'YYYY-MM') AS month, SUM(amount) AS total
+      FROM sales WHERE payment_status = 'paid'
+      GROUP BY month ORDER BY month DESC LIMIT 12
+    `;
+
+    const monthlyExpenses = await sql`
+      SELECT TO_CHAR(expense_date, 'YYYY-MM') AS month, SUM(amount) AS total
+      FROM expenses GROUP BY month ORDER BY month DESC LIMIT 12
+    `;
+
+    const outstandingInvoices = (await sql`
+      SELECT COALESCE(SUM(total), 0) AS total FROM invoices WHERE status IN ('sent', 'overdue')
+    ` as any[])[0];
+
+    const topCustomers = await sql`
+      SELECT c.name, COUNT(s.id)::int AS orders, SUM(s.amount) AS total_spent
+      FROM sales s JOIN customers c ON s.customer_id = c.id
+      WHERE s.payment_status = 'paid'
+      GROUP BY c.id, c.name ORDER BY total_spent DESC LIMIT 5
+    `;
+
+    const revenueBySource = await sql`
       SELECT
         CASE
           WHEN s.order_id IS NULL THEN 'standalone'
           WHEN o.source = 'store' THEN 'store'
           ELSE 'admin'
-        END as source,
-        COUNT(s.id) as count,
-        COALESCE(SUM(s.amount), 0) as total
-      FROM sales s
-      LEFT JOIN orders o ON s.order_id = o.id
-      WHERE s.payment_status = 'paid'
-        AND s.sale_date >= ? AND s.sale_date <= ?
+        END AS source,
+        COUNT(s.id)::int AS count,
+        COALESCE(SUM(s.amount), 0) AS total
+      FROM sales s LEFT JOIN orders o ON s.order_id = o.id
+      WHERE s.payment_status = 'paid' AND s.sale_date >= ${from} AND s.sale_date <= ${to}
       GROUP BY source
-    `).all(from, to);
+    `;
 
-    const revenue = totalSales.total;
-    const expenses = totalExpenses.total;
-    const profit = revenue - expenses;
+    const revenue = Number(totalSales.total);
+    const expensesTotal = Number(totalExpenses.total);
+    const profit = revenue - expensesTotal;
 
     return NextResponse.json({
       period: { from, to },
       revenue,
-      expenses,
+      expenses: expensesTotal,
       profit,
       profitMargin: revenue > 0 ? ((profit / revenue) * 100).toFixed(1) : "0",
       salesByMethod,
@@ -52,11 +86,12 @@ export async function GET(request: NextRequest) {
       dailySales,
       monthlySales,
       monthlyExpenses,
-      outstandingInvoices: outstandingInvoices.total,
+      outstandingInvoices: Number(outstandingInvoices.total),
       topCustomers,
       revenueBySource,
     });
   } catch (error) {
+    console.error("reports failed:", error);
     return NextResponse.json({ error: "Failed to generate report" }, { status: 500 });
   }
 }

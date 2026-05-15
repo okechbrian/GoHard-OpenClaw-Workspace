@@ -1,15 +1,16 @@
-import sqlite from "@/lib/db";
-import { generateId } from "@/lib/utils";
+import { sql } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET single sale / UPDATE / DELETE
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const sale = sqlite.prepare("SELECT s.*, c.name as customer_name FROM sales s LEFT JOIN customers c ON s.customer_id = c.id WHERE s.id = ?").get(id);
-    if (!sale) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(sale);
-  } catch (error) {
+    const rows = await sql`
+      SELECT s.*, c.name AS customer_name FROM sales s
+      LEFT JOIN customers c ON s.customer_id = c.id WHERE s.id = ${id}
+    ` as any[];
+    if (!rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rows[0]);
+  } catch {
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
@@ -18,25 +19,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
-
-    sqlite.prepare(`
-      UPDATE sales SET customer_id = ?, description = ?, amount = ?, payment_method = ?, payment_status = ?, sale_date = ?, notes = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(body.customer_id || null, body.description, body.amount, body.payment_method, body.payment_status || "paid", body.sale_date, body.notes || null, id);
-
-    const sale = sqlite.prepare("SELECT * FROM sales WHERE id = ?").get(id);
-    return NextResponse.json(sale);
-  } catch (error) {
+    await sql`
+      UPDATE sales SET customer_id = ${body.customer_id || null}, description = ${body.description},
+        amount = ${body.amount}, payment_method = ${body.payment_method},
+        payment_status = ${body.payment_status || "paid"}, sale_date = ${body.sale_date},
+        notes = ${body.notes || null}, updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    const rows = await sql`SELECT * FROM sales WHERE id = ${id}` as any[];
+    return NextResponse.json(rows[0]);
+  } catch {
     return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    sqlite.prepare("DELETE FROM sales WHERE id = ?").run(id);
+    await sql`DELETE FROM sales WHERE id = ${id}`;
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }

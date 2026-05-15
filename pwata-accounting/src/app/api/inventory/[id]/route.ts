@@ -1,14 +1,13 @@
-import sqlite from "@/lib/db";
-import { generateId } from "@/lib/utils";
+import { sql } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const item = sqlite.prepare("SELECT * FROM inventory WHERE id = ?").get(id);
-    if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(item);
-  } catch (error) {
+    const rows = await sql`SELECT * FROM inventory WHERE id = ${id}` as any[];
+    if (!rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rows[0]);
+  } catch {
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
@@ -17,25 +16,26 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
-
-    sqlite.prepare(`
-      UPDATE inventory SET name = ?, description = ?, category = ?, quantity = ?, unit = ?, cost_price = ?, selling_price = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(body.name, body.description || null, body.category || null, body.quantity || 0, body.unit || "pcs", body.cost_price || 0, body.selling_price || 0, id);
-
-    const item = sqlite.prepare("SELECT * FROM inventory WHERE id = ?").get(id);
-    return NextResponse.json(item);
-  } catch (error) {
+    await sql`
+      UPDATE inventory SET name = ${body.name}, description = ${body.description || null},
+        category = ${body.category || null}, quantity = ${body.quantity || 0},
+        unit = ${body.unit || "pcs"}, cost_price = ${body.cost_price || 0},
+        selling_price = ${body.selling_price || 0}, updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    const rows = await sql`SELECT * FROM inventory WHERE id = ${id}` as any[];
+    return NextResponse.json(rows[0]);
+  } catch {
     return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    sqlite.prepare("DELETE FROM inventory WHERE id = ?").run(id);
+    await sql`DELETE FROM inventory WHERE id = ${id}`;
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }

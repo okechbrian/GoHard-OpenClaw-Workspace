@@ -1,45 +1,44 @@
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
-
     if (!q || q.length < 2) {
       return NextResponse.json({ sales: [], expenses: [], customers: [], invoices: [] });
     }
+    const term = `%${q}%`;
 
-    const searchTerm = `%${q}%`;
-
-    const sales = sqlite.prepare(`
-      SELECT s.*, c.name as customer_name, 'sale' as type
+    const sales = await sql`
+      SELECT s.*, c.name AS customer_name, 'sale' AS type
       FROM sales s LEFT JOIN customers c ON s.customer_id = c.id
-      WHERE s.description LIKE ? OR s.notes LIKE ? OR c.name LIKE ?
+      WHERE s.description ILIKE ${term} OR s.notes ILIKE ${term} OR c.name ILIKE ${term}
       ORDER BY s.sale_date DESC LIMIT 10
-    `).all(searchTerm, searchTerm, searchTerm);
+    `;
 
-    const expenses = sqlite.prepare(`
-      SELECT *, 'expense' as type FROM expenses
-      WHERE description LIKE ? OR category LIKE ? OR notes LIKE ?
+    const expenses = await sql`
+      SELECT *, 'expense' AS type FROM expenses
+      WHERE description ILIKE ${term} OR category ILIKE ${term} OR notes ILIKE ${term}
       ORDER BY expense_date DESC LIMIT 10
-    `).all(searchTerm, searchTerm, searchTerm);
+    `;
 
-    const customers = sqlite.prepare(`
-      SELECT *, 'customer' as type FROM customers
-      WHERE name LIKE ? OR phone LIKE ? OR email LIKE ?
+    const customers = await sql`
+      SELECT *, 'customer' AS type FROM customers
+      WHERE name ILIKE ${term} OR phone ILIKE ${term} OR email ILIKE ${term}
       ORDER BY name LIMIT 10
-    `).all(searchTerm, searchTerm, searchTerm);
+    `;
 
-    const invoices = sqlite.prepare(`
-      SELECT i.*, c.name as customer_name, 'invoice' as type
+    const invoices = await sql`
+      SELECT i.*, c.name AS customer_name, 'invoice' AS type
       FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id
-      WHERE i.invoice_number LIKE ? OR c.name LIKE ?
+      WHERE i.invoice_number ILIKE ${term} OR c.name ILIKE ${term}
       ORDER BY i.created_at DESC LIMIT 10
-    `).all(searchTerm, searchTerm);
+    `;
 
     return NextResponse.json({ sales, expenses, customers, invoices });
   } catch (error) {
+    console.error("search failed:", error);
     return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
 }

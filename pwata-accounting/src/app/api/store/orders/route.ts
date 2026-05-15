@@ -1,4 +1,4 @@
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 import { corsHeaders, handlePreflight, checkApiKey } from "@/lib/store-cors";
 import { generateId, generateStoreOrderNumber } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
@@ -46,49 +46,70 @@ export async function POST(request: NextRequest) {
     const resolvedItems: Array<{ product_id: string; quantity: number; unit_price: number; subtotal: number; customizations: object }> = [];
 
     for (const item of body.items) {
-      const product = sqlite.prepare(
-        "SELECT base_price, print_fee FROM products WHERE id = ?"
-      ).get(item.product_id) as { base_price: number; print_fee: number } | undefined;
-
+      const productRows = await sql`
+        SELECT base_price, print_fee FROM products WHERE id = ${item.product_id}
+      ` as Array<{ base_price: number; print_fee: number }>;
+      const product = productRows[0];
       if (!product) {
         return NextResponse.json({ error: `Product not found: ${item.product_id}` }, { status: 400, headers });
       }
       const qty = item.quantity || 1;
-      const unitPrice = product.base_price + product.print_fee;
+      const unitPrice = Number(product.base_price) + Number(product.print_fee);
       const subtotal = unitPrice * qty;
       totalAmount += subtotal;
-      resolvedItems.push({ product_id: item.product_id, quantity: qty, unit_price: unitPrice, subtotal, customizations: item.customizations || {} });
+      resolvedItems.push({
+        product_id: item.product_id, quantity: qty, unit_price: unitPrice, subtotal,
+        customizations: item.customizations || {},
+      });
     }
 
     const depositAmount = Math.ceil(totalAmount * 0.5);
     const deliveryAddress = body.delivery_address?.trim() || "Digital Delivery";
+    const artworkUrlsJson = body.artwork_urls?.length ? JSON.stringify(body.artwork_urls) : null;
 
-    sqlite.prepare(`
-      INSERT INTO orders (id, order_number, guest_name, guest_phone, guest_email,
-        status, total_amount, deposit_amount, source, service_type, payment_method, payment_status,
-        delivery_address, notes, deadline_date, artwork_urls, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, 'store', ?, ?, 'pending', ?, ?, ?, ?, datetime('now'), datetime('now'))
-    `).run(
-      orderId, orderNumber,
-      body.guest_name.trim(), body.guest_phone.trim(), body.guest_email?.trim() || null,
-      totalAmount, depositAmount, serviceType, paymentMethod,
-      deliveryAddress, body.notes?.trim() || null,
-      body.deadline_date || null,
-      body.artwork_urls?.length ? JSON.stringify(body.artwork_urls) : null
-    );
-
-    const itemInsert = sqlite.prepare(`
-      INSERT INTO order_items (id, order_id, product_id, quantity, unit_price, subtotal, customizations, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
-    `);
-    for (const it of resolvedItems) {
-      itemInsert.run(generateId(), orderId, it.product_id, it.quantity, it.unit_price, it.subtotal, JSON.stringify(it.customizations));
+    if (artworkUrlsJson) {
+      await sql`
+        INSERT INTO orders (
+          id, order_number, guest_name, guest_phone, guest_email,
+          status, total_amount, deposit_amount, source, service_type,
+          payment_method, payment_status,
+          delivery_address, notes, deadline_date, artwork_urls
+        ) VALUES (
+          ${orderId}, ${orderNumber}, ${body.guest_name.trim()}, ${body.guest_phone.trim()}, ${body.guest_email?.trim() || null},
+          'pending', ${totalAmount}, ${depositAmount}, 'store', ${serviceType},
+          ${paymentMethod}, 'pending',
+          ${deliveryAddress}, ${body.notes?.trim() || null}, ${body.deadline_date || null},
+          ${artworkUrlsJson}::jsonb
+        )
+      `;
+    } else {
+      await sql`
+        INSERT INTO orders (
+          id, order_number, guest_name, guest_phone, guest_email,
+          status, total_amount, deposit_amount, source, service_type,
+          payment_method, payment_status,
+          delivery_address, notes, deadline_date
+        ) VALUES (
+          ${orderId}, ${orderNumber}, ${body.guest_name.trim()}, ${body.guest_phone.trim()}, ${body.guest_email?.trim() || null},
+          'pending', ${totalAmount}, ${depositAmount}, 'store', ${serviceType},
+          ${paymentMethod}, 'pending',
+          ${deliveryAddress}, ${body.notes?.trim() || null}, ${body.deadline_date || null}
+        )
+      `;
     }
 
-    sqlite.prepare(`
-      INSERT INTO order_status_history (id, order_id, status, changed_by, notes, created_at)
-      VALUES (?, ?, 'pending', null, 'Store order created – awaiting payment', datetime('now'))
-    `).run(generateId(), orderId);
+    for (const it of resolvedItems) {
+      await sql`
+        INSERT INTO order_items (id, order_id, product_id, quantity, unit_price, subtotal, customizations)
+        VALUES (${generateId()}, ${orderId}, ${it.product_id}, ${it.quantity}, ${it.unit_price}, ${it.subtotal},
+                ${JSON.stringify(it.customizations)}::jsonb)
+      `;
+    }
+
+    await sql`
+      INSERT INTO order_status_history (id, order_id, status, notes)
+      VALUES (${generateId()}, ${orderId}, 'pending', 'Store order created – awaiting payment')
+    `;
 
     return NextResponse.json(
       { id: orderId, order_number: orderNumber, total_amount: totalAmount, deposit_amount: depositAmount },

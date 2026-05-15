@@ -1,13 +1,13 @@
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const customer = sqlite.prepare("SELECT * FROM customers WHERE id = ?").get(id);
-    if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(customer);
-  } catch (error) {
+    const rows = await sql`SELECT * FROM customers WHERE id = ${id}` as any[];
+    if (!rows[0]) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(rows[0]);
+  } catch {
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
@@ -16,25 +16,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
     const body = await request.json();
-
-    sqlite.prepare(`
-      UPDATE customers SET name = ?, phone = ?, email = ?, address = ?, notes = ?, updated_at = datetime('now')
-      WHERE id = ?
-    `).run(body.name, body.phone || null, body.email || null, body.address || null, body.notes || null, id);
-
-    const customer = sqlite.prepare("SELECT * FROM customers WHERE id = ?").get(id);
-    return NextResponse.json(customer);
-  } catch (error) {
+    await sql`
+      UPDATE customers
+      SET name = ${body.name}, phone = ${body.phone || null}, email = ${body.email || null},
+          address = ${body.address || null}, notes = ${body.notes || null}, updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    const rows = await sql`SELECT * FROM customers WHERE id = ${id}` as any[];
+    return NextResponse.json(rows[0]);
+  } catch {
     return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    sqlite.prepare("DELETE FROM customers WHERE id = ?").run(id);
+    await sql`DELETE FROM customers WHERE id = ${id}`;
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }

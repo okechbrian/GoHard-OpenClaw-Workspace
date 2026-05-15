@@ -1,14 +1,18 @@
-import sqlite from "@/lib/db";
+import { sql } from "@/lib/db";
 import { formatUGX, formatDate } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const invoice = sqlite.prepare("SELECT i.*, c.name as customer_name, c.phone as customer_phone, c.email as customer_email, c.address as customer_address FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.id = ?").get(id) as any;
+    const invRows = await sql`
+      SELECT i.*, c.name AS customer_name, c.phone AS customer_phone, c.email AS customer_email, c.address AS customer_address
+      FROM invoices i LEFT JOIN customers c ON i.customer_id = c.id WHERE i.id = ${id}
+    ` as any[];
+    const invoice = invRows[0];
     if (!invoice) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const items = sqlite.prepare("SELECT * FROM invoice_items WHERE invoice_id = ?").all(id);
+    const items = await sql`SELECT * FROM invoice_items WHERE invoice_id = ${id}` as any[];
 
     // Generate PDF as HTML (print-friendly) — server-side PDF generation
     const html = generateInvoiceHTML(invoice, items as any[]);
