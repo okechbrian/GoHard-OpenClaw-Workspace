@@ -209,6 +209,7 @@ addColumnIfMissing("invoices", "order_id", "order_id TEXT REFERENCES orders(id)"
 addColumnIfMissing("orders", "deposit_amount", "deposit_amount REAL DEFAULT 0");
 addColumnIfMissing("orders", "source", "source TEXT DEFAULT 'admin'");
 addColumnIfMissing("orders", "deadline_date", "deadline_date TEXT");
+addColumnIfMissing("orders", "service_type", "service_type TEXT DEFAULT 'merchandise'");
 
 export function seedProductsIfEmpty() {
   try {
@@ -247,6 +248,28 @@ export function seedProductsIfEmpty() {
 
 // Auto-seed products on first run
 seedProductsIfEmpty();
+
+export function seedServiceProductsIfMissing() {
+  const services = [
+    { id: "svc_logo_basic", name: "Logo Only", category: "services", base_price: 80000, print_fee: 0, description: "Custom logo design" },
+    { id: "svc_logo_brand", name: "Logo + Brand Guidelines", category: "services", base_price: 150000, print_fee: 0, description: "Logo with color and font guide" },
+    { id: "svc_logo_full", name: "Full Brand Identity", category: "services", base_price: 280000, print_fee: 0, description: "Complete brand package" },
+    { id: "svc_social_basic", name: "Social Media Pack (5 posts)", category: "services", base_price: 60000, print_fee: 0, description: "5 social media graphics" },
+    { id: "svc_social_full", name: "Social Media Pack (10 posts)", category: "services", base_price: 100000, print_fee: 0, description: "10 social media graphics" },
+    { id: "svc_print_flyer", name: "Print Design — Flyer/Poster", category: "services", base_price: 35000, print_fee: 0, description: "Single print design" },
+    { id: "svc_print_menu", name: "Print Design — Menu/Brochure", category: "services", base_price: 55000, print_fee: 0, description: "Multi-page print design" },
+    { id: "svc_print_card", name: "Print Design — Business Card", category: "services", base_price: 25000, print_fee: 0, description: "Business card design" },
+  ];
+  const insert = sqlite.prepare(`
+    INSERT OR IGNORE INTO products (id, name, category, base_price, print_fee, description, image_url, variants, customizable, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, null, null, 0, datetime('now'))
+  `);
+  for (const s of services) {
+    insert.run(s.id, s.name, s.category, s.base_price, s.print_fee, s.description);
+  }
+}
+
+seedServiceProductsIfMissing();
 
 // Helper function for automation service
 export function getOrderWithDetails(orderId: string) {

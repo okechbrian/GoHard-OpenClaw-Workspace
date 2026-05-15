@@ -1,18 +1,26 @@
 import sqlite from "@/lib/db";
+import { corsHeaders, handlePreflight } from "@/lib/store-cors";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function OPTIONS(request: NextRequest) {
+  return handlePreflight(request)!;
+}
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const origin = request.headers.get("origin");
+  const headers = corsHeaders(origin);
+
   try {
     const { id } = await params;
     const order = sqlite.prepare(
-      "SELECT id, order_number, status, payment_status, total_amount, deposit_amount, source, deadline_date, artwork_urls, notes, created_at FROM orders WHERE id = ?"
+      "SELECT id, order_number, status, payment_status, total_amount, deposit_amount, source, service_type, deadline_date, artwork_urls, notes, created_at FROM orders WHERE id = ?"
     ).get(id) as any;
 
     if (!order || order.source !== "store") {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Order not found" }, { status: 404, headers });
     }
 
     const items = sqlite.prepare(`
@@ -21,8 +29,9 @@ export async function GET(
       WHERE oi.order_id = ?
     `).all(id);
 
-    return NextResponse.json({ ...order, items });
+    return NextResponse.json({ ...order, items }, { headers });
   } catch {
-    return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
+    const o2 = request.headers.get("origin");
+    return NextResponse.json({ error: "Failed to fetch order" }, { status: 500, headers: corsHeaders(o2) });
   }
 }
