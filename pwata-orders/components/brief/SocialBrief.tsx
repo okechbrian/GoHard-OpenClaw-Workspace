@@ -1,5 +1,6 @@
 "use client";
 import { SOCIAL_PACKAGES, SOCIAL_PLATFORMS, SOCIAL_POST_TYPES, SOCIAL_PURPOSES } from "@/lib/services";
+import PlatformIcon from "@/components/PlatformIcon";
 
 export interface SocialBriefState {
   package_id: string;
@@ -49,9 +50,12 @@ export default function SocialBrief({ brief, onChange }: Props) {
         <div className="style-pills">
           {SOCIAL_PLATFORMS.map((p) => (
             <button key={p} type="button"
-              className={`style-pill${brief.platforms.includes(p) ? " multi-selected" : ""}`}
+              className={`style-pill platform-pill${brief.platforms.includes(p) ? " multi-selected" : ""}`}
               onClick={() => togglePlatform(p)}
-            >{p}</button>
+            >
+              <PlatformIcon platform={p} size={14} />
+              <span>{p}</span>
+            </button>
           ))}
         </div>
       </div>

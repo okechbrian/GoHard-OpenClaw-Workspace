@@ -52,6 +52,17 @@ body {
 .brand-name b { font-size: .95rem; font-weight: 800; letter-spacing: -0.015em; color: var(--text); }
 .brand-name small { font-size: .62rem; color: var(--text-muted); letter-spacing: .06em; margin-top: 1px; text-transform: uppercase; }
 
+/* Pwata logo image (replaces gradient "P" mark — shared with pwata-orders) */
+.logo-img {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+  box-shadow:
+    0 0 0 1.5px rgba(255,123,0,.6),
+    0 4px 18px rgba(255,123,0,.25);
+}
+
 /* Mobile-first responsive */
 .container {
   max-width: 1200px;

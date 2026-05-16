@@ -7,7 +7,10 @@ export default function Home() {
     <div className="container" style={{ paddingTop: "1.25rem" }}>
       {/* Hero */}
       <section className="hero">
-        <span className="hero-eyebrow">Pwata Creatives · Kampala</span>
+        <div style={{ display: "flex", alignItems: "center", gap: ".6rem", marginBottom: ".4rem" }}>
+          <img src="/logo.jpg" alt="" className="logo-img" style={{ width: 26, height: 26 }} />
+          <span className="hero-eyebrow">Pwata Creatives · Kampala</span>
+        </div>
         <h1 className="hero-title">Order design that ships in days.</h1>
         <p className="hero-sub">
           Real designers, AI-assisted briefs. Pay 50% via MoMo, get drafts on WhatsApp, balance on delivery. No agency overhead.

@@ -425,4 +425,18 @@ body {
 }
 .footer-links a:hover { color: var(--primary); }
 
+/* ---- Pwata logo image (replaces gradient "P" mark) ---- */
+.logo-img {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+  box-shadow:
+    0 0 0 1.5px rgba(255,123,0,.6),
+    0 4px 18px rgba(255,123,0,.25);
+}
+
+/* ---- Platform pill (icon + label) ---- */
+.platform-pill { display: inline-flex; align-items: center; gap: .4rem; }
+
 main { padding-bottom: 110px; }

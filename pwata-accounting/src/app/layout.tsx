@@ -102,7 +102,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Top bar */}
         <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(22,22,22,.85)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "0.65rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="brand-mark">
-            <span className="logo">P</span>
+            <img src="/logo.jpg" alt="Pwata Creatives" className="logo-img" />
             <span className="brand-name">
               <b>Pwata Creatives</b>
               <small>Accounting</small>

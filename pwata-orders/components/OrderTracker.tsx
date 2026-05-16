@@ -1,5 +1,6 @@
 "use client";
 import { formatUGX } from "@/lib/services";
+import PlatformIcon from "@/components/PlatformIcon";
 
 interface Order {
   id: string;
@@ -37,7 +38,7 @@ function getStageIndex(order: Order): number {
   return 0;
 }
 
-function briefSummary(customizations: Record<string, unknown>): Array<{ label: string; value: string }> {
+function briefSummary(customizations: Record<string, unknown>): Array<{ label: string; key: string; value: string; raw: unknown }> {
   const fields = [
     ["Business", "business_name"], ["Industry", "industry"],
     ["Personality", "brand_personality"], ["Style", "style_preference"],
@@ -54,9 +55,9 @@ function briefSummary(customizations: Record<string, unknown>): Array<{ label: s
       const v = customizations[key];
       if (!v) return null;
       const value = Array.isArray(v) ? v.join(", ") : String(v);
-      return { label, value };
+      return { label, key, value, raw: v };
     })
-    .filter(Boolean) as Array<{ label: string; value: string }>;
+    .filter(Boolean) as Array<{ label: string; key: string; value: string; raw: unknown }>;
 }
 
 export default function OrderTracker({ order }: { order: Order }) {
@@ -85,8 +86,10 @@ export default function OrderTracker({ order }: { order: Order }) {
       </div>
 
       {/* Order number card */}
-      <div className="card" style={{ marginBottom: "1rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div className="card" style={{ marginBottom: "1rem", position: "relative" }}>
+        <img src="/logo.jpg" alt="" className="logo-img"
+          style={{ width: 26, height: 26, position: "absolute", top: "1rem", right: "1rem", opacity: 0.85 }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingRight: "2.5rem" }}>
           <div>
             <p className="label">Order number</p>
             <p style={{ fontWeight: 900, fontSize: "1.5rem", letterSpacing: "0.05em" }}>{order.order_number}</p>
@@ -133,10 +136,21 @@ export default function OrderTracker({ order }: { order: Order }) {
                 </div>
                 {summary.length > 0 ? (
                   <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.25rem 0.75rem", fontSize: "0.8rem" }}>
-                    {summary.map(({ label, value }) => (
+                    {summary.map(({ label, key, value, raw }) => (
                       <div key={label} style={{ display: "contents" }}>
                         <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>{label}:</span>
-                        <span style={{ color: "var(--text)" }}>{value}</span>
+                        <span style={{ color: "var(--text)" }}>
+                          {key === "platforms" && Array.isArray(raw) ? (
+                            <span style={{ display: "inline-flex", gap: ".55rem", flexWrap: "wrap", alignItems: "center" }}>
+                              {(raw as string[]).map((p) => (
+                                <span key={p} style={{ display: "inline-flex", alignItems: "center", gap: ".25rem" }}>
+                                  <PlatformIcon platform={p} size={13} />
+                                  {p}
+                                </span>
+                              ))}
+                            </span>
+                          ) : value}
+                        </span>
                       </div>
                     ))}
                   </div>

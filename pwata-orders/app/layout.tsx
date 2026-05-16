@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="store-header">
           <a href="/" className="brand-mark" style={{ textDecoration: "none", color: "inherit" }}>
-            <span className="logo">P</span>
+            <img src="/logo.jpg" alt="Pwata Creatives" className="logo-img" />
             <span className="brand-name">
               <b>Pwata Creatives</b>
               <small>Kampala · Design Studio</small>
