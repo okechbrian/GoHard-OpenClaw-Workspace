@@ -187,6 +187,40 @@ body {
   font-size: 1.25rem;
 }
 
+/* Dashboard hero + sections (added 2026-05-16) */
+.dash-hero {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; padding: 1.25rem 0 1.5rem;
+}
+.hero-eyebrow {
+  display: inline-block;
+  font-size: .68rem; font-weight: 700; letter-spacing: .14em;
+  color: var(--primary); text-transform: uppercase;
+}
+.hero-title-sm {
+  font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1.15; margin: .35rem 0;
+}
+.hero-sub {
+  color: var(--text-muted); font-size: .85rem; line-height: 1.5;
+}
+.dash-quick { display: flex; gap: .5rem; flex-wrap: wrap; }
+.dash-section { margin-bottom: 1.75rem; }
+.dash-section > h2 {
+  font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+  color: var(--text-muted); text-transform: uppercase;
+  margin-bottom: .85rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.dash-section > h2::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+.dash-grid-2 { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 720px) { .dash-grid-2 { grid-template-columns: 1fr 1fr; } }
+
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

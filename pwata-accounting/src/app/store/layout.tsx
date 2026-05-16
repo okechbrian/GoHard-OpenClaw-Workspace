@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "Order Custom Merchandise — Pwata Creatives",
-  description: "T-shirts, hoodies, mugs, caps and more. Custom printed in Kampala. Pay 50% deposit via MTN MoMo or Airtel Money.",
+  title: "Order Custom Merchandise · Pwata Creatives",
+  description: "T-shirts, hoodies, mugs, caps and more. Custom printed for you. Pay 50% deposit via MTN MoMo or Airtel Money.",
 };
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +19,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
           />
           <div>
             <div style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--primary)" }}>Pwata Creatives</div>
-            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>Custom Merch · Kampala</div>
+            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>Custom Merch</div>
           </div>
         </div>
         <span className="badge badge-blue" style={{ fontSize: "0.7rem" }}>🛍️ Custom Merch</span>

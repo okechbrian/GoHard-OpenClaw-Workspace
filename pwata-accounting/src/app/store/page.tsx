@@ -162,7 +162,7 @@ export default function StorePage() {
           Order Custom Merch 🎨
         </h1>
         <p style={{ fontSize: "0.9rem", opacity: 0.9, marginBottom: "0.75rem" }}>
-          T-shirts, hoodies, mugs & more — printed in Kampala
+          T-shirts, hoodies, mugs and more, printed for you
         </p>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", background: "rgba(0,0,0,0.25)", borderRadius: 20, padding: "0.3rem 0.75rem", fontSize: "0.8rem", fontWeight: 600 }}>
           📱 Pay 50% deposit via MTN MoMo or Airtel Money

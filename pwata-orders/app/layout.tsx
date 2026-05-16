@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import PlatformIcon from "@/components/PlatformIcon";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Pwata Creatives — Order Design Work",
-  description: "Custom graphic design from Pwata Creatives, Kampala. Merchandise, logos, social media, print & flyers — delivered in days.",
+  title: "Pwata Creatives · Order Design Work",
+  description: "Custom graphic design from Pwata Creatives. Merchandise, logos, social media, print and flyers, delivered in days.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -24,22 +25,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <img src="/logo.jpg" alt="Pwata Creatives" className="logo-img" />
             <span className="brand-name">
               <b>Pwata Creatives</b>
-              <small>Kampala · Design Studio</small>
+              <small>Design Studio</small>
             </span>
           </a>
           <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: "0.75rem", color: "var(--text-muted)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: ".4rem" }}>
-            💬 WhatsApp
+            style={{ fontSize: "0.78rem", color: "#25D366", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: ".4rem", fontWeight: 600 }}>
+            <PlatformIcon platform="WhatsApp" size={16} />
+            <span>WhatsApp</span>
           </a>
         </header>
         <main>{children}</main>
         <footer className="footer">
           <div className="footer-links">
-            <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
-            <a href="https://instagram.com/pwatacreatives" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: ".35rem" }}>
+              <PlatformIcon platform="WhatsApp" size={14} />
+              WhatsApp
+            </a>
+            <a href="https://instagram.com/pwatacreatives" target="_blank" rel="noopener noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: ".35rem" }}>
+              <PlatformIcon platform="Instagram" size={14} />
+              Instagram
+            </a>
             <a href="/">Services</a>
           </div>
-          <div>© {new Date().getFullYear()} Pwata Creatives · Kampala, Uganda</div>
+          <div>© {new Date().getFullYear()} Pwata Creatives</div>
         </footer>
         <Toaster position="bottom-center" theme="dark" />
       </body>

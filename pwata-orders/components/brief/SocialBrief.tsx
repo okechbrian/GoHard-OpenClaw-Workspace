@@ -81,7 +81,7 @@ export default function SocialBrief({ brief, onChange }: Props) {
             onChange={(e) => updateDesigns(parseInt(e.target.value) || 1)}
           />
           <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-            Package: <strong style={{ color: "var(--primary)" }}>{selectedPkg.label} — UGX {selectedPkg.price.toLocaleString("en-UG")}</strong>
+            Package: <strong style={{ color: "var(--primary)" }}>{selectedPkg.label} · UGX {selectedPkg.price.toLocaleString("en-UG")}</strong>
           </span>
         </div>
       </div>

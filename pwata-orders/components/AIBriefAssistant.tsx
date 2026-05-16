@@ -58,7 +58,7 @@ export default function AIBriefAssistant({ serviceType, onFill }: Props) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <div>
                 <h3 style={{ fontSize: "1rem", letterSpacing: "-0.01em" }}>✨ AI Brief Assistant</h3>
-                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Describe your idea — we'll fill in the form for you.</p>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Describe your idea. We'll fill in the form for you.</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: "1.25rem", cursor: "pointer" }}>✕</button>
             </div>
@@ -95,7 +95,7 @@ export default function AIBriefAssistant({ serviceType, onFill }: Props) {
             )}
 
             <p style={{ textAlign: "center", fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "1rem", letterSpacing: ".04em" }}>
-              Powered by Claude · Your description stays private
+              Powered by Gemini · Your description stays private
             </p>
           </div>
         </div>

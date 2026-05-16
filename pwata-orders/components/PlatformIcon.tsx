@@ -1,12 +1,14 @@
-import { siInstagram, siFacebook, siX, siTiktok } from "simple-icons";
+import { siInstagram, siFacebook, siX, siTiktok, siWhatsapp } from "simple-icons";
 
-// LinkedIn was removed from simple-icons at the brand owner's request — pill falls back to text-only.
+// LinkedIn was removed from simple-icons at the brand owner's request; its pill falls back to text-only.
 const ICON_MAP: Record<string, { path: string; title: string }> = {
   Instagram: siInstagram,
   Facebook: siFacebook,
   "Twitter/X": siX,
   X: siX,
   TikTok: siTiktok,
+  WhatsApp: siWhatsapp,
+  Whatsapp: siWhatsapp,
 };
 
 interface Props {

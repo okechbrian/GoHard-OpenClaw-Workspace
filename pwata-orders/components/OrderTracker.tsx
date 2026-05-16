@@ -172,7 +172,8 @@ export default function OrderTracker({ order }: { order: Order }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         <a href={waLink} target="_blank" rel="noopener noreferrer"
           className="btn btn-success btn-full btn-lg" style={{ textDecoration: "none" }}>
-          💬 WhatsApp us about this order
+          <PlatformIcon platform="WhatsApp" size={18} />
+          <span>WhatsApp us about this order</span>
         </a>
         <button type="button" className="btn btn-ghost btn-full"
           onClick={() => { navigator.clipboard.writeText(window.location.href); }}>
