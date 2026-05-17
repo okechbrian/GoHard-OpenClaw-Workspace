@@ -32,6 +32,25 @@ const ICONS: Record<ServiceType, React.ReactNode> = {
       <rect x="6" y="14" width="12" height="8" />
     </svg>
   ),
+  website: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <line x1="2" y1="9" x2="22" y2="9" />
+      <circle cx="5.5" cy="6.5" r="0.5" fill="currentColor" />
+      <circle cx="8" cy="6.5" r="0.5" fill="currentColor" />
+      <circle cx="10.5" cy="6.5" r="0.5" fill="currentColor" />
+    </svg>
+  ),
+  bot: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="7" width="16" height="12" rx="3" />
+      <path d="M12 7V4" />
+      <circle cx="12" cy="3" r="1" />
+      <circle cx="9" cy="13" r="1" fill="currentColor" />
+      <circle cx="15" cy="13" r="1" fill="currentColor" />
+      <path d="M9 16h6" />
+    </svg>
+  ),
 };
 
 export default function ServiceCard({ service, priceFrom }: Props) {

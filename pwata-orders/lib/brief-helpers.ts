@@ -1,6 +1,8 @@
 import type { LogoBriefState } from "@/components/brief/LogoBrief";
 import type { SocialBriefState } from "@/components/brief/SocialBrief";
 import type { PrintBriefState } from "@/components/brief/PrintBrief";
+import type { WebsiteBriefState } from "@/components/brief/WebsiteBrief";
+import type { BotBriefState } from "@/components/brief/BotBrief";
 import { PRINT_PACKAGE_MAP } from "./services";
 
 export interface OrderItem {
@@ -69,6 +71,45 @@ export interface MerchCartItem {
   color_scheme?: string;
   placement?: string;
   inspiration?: string;
+}
+
+export function websiteToOrderItems(brief: WebsiteBriefState): OrderItem[] {
+  return [{
+    product_id: brief.package_id,
+    quantity: 1,
+    customizations: {
+      business_name: brief.business_name,
+      industry: brief.industry,
+      website_purpose: brief.website_purpose,
+      target_audience: brief.target_audience,
+      brand_status: brief.brand_status,
+      domain_status: brief.domain_status,
+      preferred_features: brief.preferred_features,
+      reference_sites: brief.reference_sites,
+      content_ready: brief.content_ready,
+      deadline: brief.deadline,
+    },
+  }];
+}
+
+export function botToOrderItems(brief: BotBriefState): OrderItem[] {
+  return [{
+    product_id: brief.package_id,
+    quantity: 1,
+    customizations: {
+      business_name: brief.business_name,
+      industry: brief.industry,
+      bot_purpose: brief.bot_purpose,
+      conversation_complexity: brief.conversation_complexity,
+      whatsapp_business_status: brief.whatsapp_business_status,
+      has_telegram_channel: brief.has_telegram_channel,
+      integrations_needed: brief.integrations_needed,
+      languages: brief.languages,
+      approx_monthly_messages: brief.approx_monthly_messages,
+      example_questions: brief.example_questions,
+      deadline: brief.deadline,
+    },
+  }];
 }
 
 export function merchToOrderItems(cart: MerchCartItem[]): OrderItem[] {

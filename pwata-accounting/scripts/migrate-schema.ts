@@ -239,6 +239,13 @@ async function migrate() {
     ["svc_print_flyer", "Print Design — Flyer/Poster", 35000, "Single print design"],
     ["svc_print_menu", "Print Design — Menu/Brochure", 55000, "Multi-page print design"],
     ["svc_print_card", "Print Design — Business Card", 25000, "Business card design"],
+    ["svc_website_landing", "Landing Page", 350000, "Single-page website, contact form, mobile, hosted on Vercel/Netlify (1 year free)"],
+    ["svc_website_multi", "Multi-Page Website", 900000, "Up to 5 pages, CMS-lite, blog optional"],
+    ["svc_website_full", "Full Website + CMS", 2000000, "10+ pages, full CMS, blog, custom design"],
+    ["svc_website_ecom", "E-Commerce Store", 2800000, "Catalog, cart, Flutterwave/MoMo checkout, admin"],
+    ["svc_bot_faq", "FAQ Bot (WhatsApp + Telegram)", 400000, "Menu-driven, 5-10 nodes, both platforms"],
+    ["svc_bot_intake", "Intake/Lead Bot (WhatsApp + Telegram)", 750000, "Captures orders/leads, syncs to Sheets or email"],
+    ["svc_bot_full", "Full Conversational Bot (WhatsApp + Telegram)", 1800000, "AI Q&A, integrations, multilingual"],
   ] as const;
   for (const [id, name, bp, desc] of services) {
     await sql`INSERT INTO products (id, name, category, base_price, print_fee, description, customizable)

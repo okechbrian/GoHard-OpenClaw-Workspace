@@ -43,6 +43,8 @@ export default function AIBriefAssistant({ serviceType, onFill }: Props) {
     social: "e.g. \"5 Instagram posts for a promotion on our new coffee blend. Modern, warm tones.\"",
     print: "e.g. \"A4 flyer for an end-of-year party at Club Silk on Dec 20th. Vibrant, include: doors open 9pm, tickets 10k.\"",
     merchandise: "e.g. \"Hoodies for my Makerere engineering class. Print \\\"Eng. Class 2025\\\" and our faculty motto.\"",
+    website: "e.g. \"5-page site for my wedding planning business in Kampala. Need a portfolio, contact form, and Instagram feed. We have our own branding.\"",
+    bot: "e.g. \"WhatsApp + Telegram bot for my pharmacy. Should answer opening hours, locations, and let people order prescription refills. Push leads to a Google Sheet.\"",
   };
 
   return (

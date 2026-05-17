@@ -8,12 +8,14 @@ import LogoBrief, { DEFAULT_LOGO_BRIEF, type LogoBriefState } from "@/components
 import SocialBrief, { DEFAULT_SOCIAL_BRIEF, type SocialBriefState } from "@/components/brief/SocialBrief";
 import PrintBrief, { DEFAULT_PRINT_BRIEF, type PrintBriefState } from "@/components/brief/PrintBrief";
 import MerchBrief from "@/components/brief/MerchBrief";
+import WebsiteBrief, { DEFAULT_WEBSITE_BRIEF, type WebsiteBriefState } from "@/components/brief/WebsiteBrief";
+import BotBrief, { DEFAULT_BOT_BRIEF, type BotBriefState } from "@/components/brief/BotBrief";
 import AIBriefAssistant from "@/components/AIBriefAssistant";
 import type { MerchCartItem } from "@/lib/brief-helpers";
-import { logoToOrderItems, socialToOrderItems, printToOrderItems, merchToOrderItems } from "@/lib/brief-helpers";
-import { LOGO_PACKAGES, SOCIAL_PACKAGES, PRINT_PACKAGE_MAP } from "@/lib/services";
+import { logoToOrderItems, socialToOrderItems, printToOrderItems, merchToOrderItems, websiteToOrderItems, botToOrderItems } from "@/lib/brief-helpers";
+import { LOGO_PACKAGES, SOCIAL_PACKAGES, PRINT_PACKAGE_MAP, WEBSITE_PACKAGES, BOT_PACKAGES } from "@/lib/services";
 
-const VALID_SERVICES: ServiceType[] = ["merchandise", "logo", "social", "print"];
+const VALID_SERVICES: ServiceType[] = ["merchandise", "logo", "social", "print", "website", "bot"];
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -35,6 +37,8 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
   const [socialBrief, setSocialBrief] = useState<SocialBriefState>(DEFAULT_SOCIAL_BRIEF);
   const [printBrief, setPrintBrief] = useState<PrintBriefState>(DEFAULT_PRINT_BRIEF);
   const [merchCart, setMerchCart] = useState<MerchCartItem[]>([]);
+  const [websiteBrief, setWebsiteBrief] = useState<WebsiteBriefState>(DEFAULT_WEBSITE_BRIEF);
+  const [botBrief, setBotBrief] = useState<BotBriefState>(DEFAULT_BOT_BRIEF);
 
   // Customer details
   const [name, setName] = useState("");
@@ -77,6 +81,12 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
       const pkg = PRINT_PACKAGE_MAP[printBrief.print_type ?? "Flyer"];
       return pkg?.price ?? 35000;
     }
+    if (serviceType === "website") {
+      return WEBSITE_PACKAGES.find((p) => p.id === websiteBrief.package_id)?.price ?? 350000;
+    }
+    if (serviceType === "bot") {
+      return BOT_PACKAGES.find((p) => p.id === botBrief.package_id)?.price ?? 400000;
+    }
     // merch: sum from cart items
     return merchCart.reduce((s, c) => s + c.unit_price * c.quantity, 0);
   }
@@ -85,6 +95,8 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
     if (serviceType === "logo") return logoToOrderItems(logoBrief);
     if (serviceType === "social") return socialToOrderItems(socialBrief);
     if (serviceType === "print") return printToOrderItems(printBrief);
+    if (serviceType === "website") return websiteToOrderItems(websiteBrief);
+    if (serviceType === "bot") return botToOrderItems(botBrief);
     return merchToOrderItems(merchCart);
   }
 
@@ -92,6 +104,8 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
     if (serviceType === "logo") return !!logoBrief.business_name.trim();
     if (serviceType === "social") return socialBrief.platforms.length > 0 && !!socialBrief.content_text.trim();
     if (serviceType === "print") return !!printBrief.print_type && !!printBrief.content_text.trim();
+    if (serviceType === "website") return !!websiteBrief.business_name.trim() && !!websiteBrief.website_purpose;
+    if (serviceType === "bot") return !!botBrief.business_name.trim() && !!botBrief.bot_purpose && !!botBrief.conversation_complexity;
     return merchCart.length > 0 && merchCart.every((c) => !!c.print_text?.trim());
   }
 
@@ -105,6 +119,8 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
     if (serviceType === "logo") setLogoBrief((b) => ({ ...b, ...fields }));
     if (serviceType === "social") setSocialBrief((b) => ({ ...b, ...fields }));
     if (serviceType === "print") setPrintBrief((b) => ({ ...b, ...fields }));
+    if (serviceType === "website") setWebsiteBrief((b) => ({ ...b, ...fields }));
+    if (serviceType === "bot") setBotBrief((b) => ({ ...b, ...fields }));
     toast.success("Brief filled! Review and adjust as needed.");
   }
 
@@ -168,6 +184,14 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
       const filled = [printBrief.print_type, printBrief.size, printBrief.content_text, printBrief.style, printBrief.color_scheme].filter((v) => v && String(v).trim()).length;
       return Math.min(3, Math.floor(filled / 2) + (filled > 0 ? 1 : 0));
     }
+    if (serviceType === "website") {
+      const filled = [websiteBrief.business_name, websiteBrief.website_purpose, websiteBrief.brand_status, websiteBrief.content_ready].filter((v) => v && String(v).trim()).length;
+      return Math.min(3, filled);
+    }
+    if (serviceType === "bot") {
+      const filled = [botBrief.business_name, botBrief.bot_purpose, botBrief.conversation_complexity, botBrief.example_questions].filter((v) => v && String(v).trim()).length;
+      return Math.min(3, filled);
+    }
     // merch: 1 for items, 2 if all have print text, 3 if any have style+placement
     if (merchCart.length === 0) return 0;
     const allText = merchCart.every((c) => !!c.print_text?.trim());
@@ -218,6 +242,8 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
           {serviceType === "social" && <SocialBrief brief={socialBrief} onChange={setSocialBrief} />}
           {serviceType === "print" && <PrintBrief brief={printBrief} onChange={setPrintBrief} />}
           {serviceType === "merchandise" && <MerchBrief cart={merchCart} onChange={setMerchCart} />}
+          {serviceType === "website" && <WebsiteBrief brief={websiteBrief} onChange={setWebsiteBrief} />}
+          {serviceType === "bot" && <BotBrief brief={botBrief} onChange={setBotBrief} />}
 
           {/* Brief strength meter */}
           <div className="brief-strength">

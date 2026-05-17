@@ -24,6 +24,31 @@ async function migrate() {
   // Users: add OAuth columns, drop bcrypt rows + password_hash.
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS picture_url TEXT`;
+
+  // Discover every FK pointing at users and null out references owned by
+  // the rows we're about to delete (the FKs default to NO ACTION).
+  const fks = (await sql`
+    SELECT tc.table_name, kcu.column_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+    JOIN information_schema.constraint_column_usage ccu
+      ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+    WHERE tc.constraint_type = 'FOREIGN KEY'
+      AND ccu.table_name = 'users'
+      AND tc.table_name <> 'users'
+  `) as Array<{ table_name: string; column_name: string }>;
+
+  for (const fk of fks) {
+    // table_name and column_name come from information_schema and are
+    // standard lowercase identifiers — safe to inline.
+    await sql.query(
+      `UPDATE "${fk.table_name}" SET "${fk.column_name}" = NULL
+       WHERE "${fk.column_name}" IN (SELECT id FROM users WHERE google_id IS NULL)`
+    );
+    console.log(`  · nulled refs in ${fk.table_name}.${fk.column_name}`);
+  }
+
   const deleted = await sql`DELETE FROM users WHERE google_id IS NULL RETURNING id`;
   console.log(`  · users: dropped ${deleted.length} bcrypt rows`);
   await sql`ALTER TABLE users DROP COLUMN IF EXISTS password_hash`;

@@ -38,6 +38,8 @@ export default function Home() {
         <ServiceCard service="logo" priceFrom={formatUGX(80000)} />
         <ServiceCard service="social" priceFrom={formatUGX(60000)} />
         <ServiceCard service="print" priceFrom={formatUGX(25000)} />
+        <ServiceCard service="website" priceFrom={formatUGX(350000)} />
+        <ServiceCard service="bot" priceFrom={formatUGX(400000)} />
       </div>
 
       {/* How it works */}

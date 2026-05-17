@@ -1,4 +1,4 @@
-export type ServiceType = "merchandise" | "logo" | "social" | "print";
+export type ServiceType = "merchandise" | "logo" | "social" | "print" | "website" | "bot";
 
 export interface ServicePackage {
   id: string;
@@ -8,10 +8,12 @@ export interface ServicePackage {
 }
 
 export const SERVICE_META: Record<ServiceType, { label: string; tagline: string; accent: string }> = {
-  merchandise: { label: "Merchandise", tagline: "T-shirts, hoodies, mugs, caps & more",      accent: "#ff7b00" },
-  logo:        { label: "Logo & Branding", tagline: "Logo design, brand identity, guidelines", accent: "#f43f5e" },
-  social:      { label: "Social Media",    tagline: "Instagram, Facebook, LinkedIn graphics",  accent: "#22c55e" },
-  print:       { label: "Print & Flyers",  tagline: "Flyers, menus, business cards, posters",  accent: "#f59e0b" },
+  merchandise: { label: "Merchandise",     tagline: "T-shirts, hoodies, mugs, caps & more",        accent: "#ff7b00" },
+  logo:        { label: "Logo & Branding", tagline: "Logo design, brand identity, guidelines",     accent: "#f43f5e" },
+  social:      { label: "Social Media",    tagline: "Instagram, Facebook, LinkedIn graphics",      accent: "#22c55e" },
+  print:       { label: "Print & Flyers",  tagline: "Flyers, menus, business cards, posters",      accent: "#f59e0b" },
+  website:     { label: "Websites",        tagline: "Landing pages, full sites, e-commerce stores", accent: "#6366f1" },
+  bot:         { label: "WhatsApp + Telegram Bots", tagline: "FAQ, lead capture, AI conversation", accent: "#06b6d4" },
 };
 
 export const LOGO_PACKAGES: ServicePackage[] = [
@@ -35,6 +37,19 @@ export const PRINT_PACKAGE_MAP: Record<string, { id: string; price: number }> = 
   "Banner":         { id: "svc_print_menu",  price: 55000 },
 };
 
+export const WEBSITE_PACKAGES: ServicePackage[] = [
+  { id: "svc_website_landing", label: "Landing Page",       price:  350000, description: "1 page, contact form, mobile responsive, hosted on Vercel" },
+  { id: "svc_website_multi",   label: "Multi-Page Website", price:  900000, description: "Up to 5 pages, CMS-lite, blog optional" },
+  { id: "svc_website_full",    label: "Full Website + CMS", price: 2000000, description: "10+ pages, full CMS, blog, custom design" },
+  { id: "svc_website_ecom",    label: "E-Commerce Store",   price: 2800000, description: "Catalog, cart, Flutterwave/MoMo checkout, admin" },
+];
+
+export const BOT_PACKAGES: ServicePackage[] = [
+  { id: "svc_bot_faq",    label: "FAQ Bot",                price:  400000, description: "WhatsApp + Telegram, menu-driven, 5–10 nodes" },
+  { id: "svc_bot_intake", label: "Intake / Lead Bot",      price:  750000, description: "Captures orders/leads, syncs to Sheets or email" },
+  { id: "svc_bot_full",   label: "Full Conversational Bot", price: 1800000, description: "AI Q&A, integrations, multilingual" },
+];
+
 export const LOGO_STYLES = ["Modern", "Vintage", "Minimalist", "Bold", "Playful", "Corporate"] as const;
 export const LOGO_USES = ["Digital Only", "Print Only", "Both"] as const;
 export const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "Twitter/X", "LinkedIn", "TikTok"] as const;
@@ -54,6 +69,19 @@ export const MERCH_COLORS = [
   { label: "Multi-color", bg: "linear-gradient(135deg,#f97316,#3b82f6,#22c55e)", text: "M" },
 ] as const;
 export const MERCH_PLACEMENTS = ["Chest Left", "Full Front", "Full Back", "Sleeve", "Front + Back"] as const;
+
+export const WEBSITE_PURPOSES = ["Landing", "Portfolio", "Services / Business", "E-commerce", "Blog / Content", "Other"] as const;
+export const WEBSITE_FEATURES = ["Contact form", "WhatsApp button", "Blog", "Payments", "Booking", "Login / Members", "Map", "Gallery"] as const;
+export const WEBSITE_CONTENT_READY = ["Yes, all ready", "Some ready", "Need help writing"] as const;
+export const WEBSITE_DOMAIN_STATUS = ["I have one", "I'll register one", "I need help"] as const;
+export const WEBSITE_BRAND_STATUS = ["I have one", "I need help with branding"] as const;
+
+export const BOT_PURPOSES = ["FAQ / info", "Orders", "Lead capture", "Appointments", "Broadcasts / announcements", "Other"] as const;
+export const BOT_COMPLEXITIES = ["Simple menu", "Guided form", "AI-powered"] as const;
+export const BOT_INTEGRATIONS = ["Google Sheets", "Calendar", "Payments", "CRM", "Email"] as const;
+export const BOT_LANGUAGES = ["English", "Luganda", "Swahili", "Other"] as const;
+export const BOT_VOLUMES = ["Under 1,000 / month", "1,000–10,000 / month", "10,000+ / month"] as const;
+export const BOT_WHATSAPP_STATUS = ["I have a WhatsApp Business account", "Not yet", "I need help"] as const;
 
 export function formatUGX(n: number) {
   return "UGX " + n.toLocaleString("en-UG");
