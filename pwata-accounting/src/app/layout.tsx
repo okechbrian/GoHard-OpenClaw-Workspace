@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
+import NavIcon from "@/components/NavIcon";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,16 +13,19 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-const navItems = [
-  { href: "/", label: "Home", icon: "🏠" },
-  { href: "/orders", label: "Orders", icon: "📋" },
-  { href: "/products", label: "Catalog", icon: "🛍️" },
-  { href: "/sales", label: "Sales", icon: "💰" },
-  { href: "/invoices", label: "Invoices", icon: "🧾" },
-  { href: "/expenses", label: "Expenses", icon: "📉" },
-  { href: "/customers", label: "Clients", icon: "👥" },
-  { href: "/inventory", label: "Stock", icon: "📦" },
-  { href: "/reports", label: "Reports", icon: "📊" },
+const PRIMARY_NAV = [
+  { href: "/",        label: "Home",    icon: "home" },
+  { href: "/orders",  label: "Orders",  icon: "orders" },
+  { href: "/sales",   label: "Sales",   icon: "sales" },
+  { href: "/reports", label: "Reports", icon: "reports" },
+];
+
+const SECONDARY_NAV = [
+  { href: "/invoices",  label: "Invoices", icon: "invoices" },
+  { href: "/expenses",  label: "Expenses", icon: "expenses" },
+  { href: "/products",  label: "Catalog",  icon: "catalog" },
+  { href: "/customers", label: "Clients",  icon: "clients" },
+  { href: "/inventory", label: "Stock",    icon: "stock" },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -66,6 +70,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   const [avatarBroken, setAvatarBroken] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // Close the More sheet on navigation
+  useEffect(() => { setMoreOpen(false); }, [pathname]);
+
+  // ESC closes the More sheet
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMoreOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
+
+  const isSecondaryActive = SECONDARY_NAV.some((item) => pathname.startsWith(item.href));
 
   if (pathname === "/login" || pathname.startsWith("/store")) {
     return (
@@ -141,20 +159,53 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="bottom-nav">
-          {navItems.map((item) => {
+          {PRIMARY_NAV.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const showBadge = item.href === "/orders" && pendingCount > 0;
             return (
-              <Link key={item.href} href={item.href} className={active ? "active" : ""} style={{ position: "relative" }}>
-                <span className="bottom-nav-icon">{item.icon}</span>
-                {item.label}
+              <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+                <NavIcon name={item.icon} />
+                <span>{item.label}</span>
                 {showBadge && (
                   <span className="nav-badge">{pendingCount > 9 ? "9+" : pendingCount}</span>
                 )}
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={isSecondaryActive ? "active" : ""}
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
+          >
+            <NavIcon name="more" />
+            <span>More</span>
+          </button>
         </nav>
+
+        {moreOpen && (
+          <>
+            <div className="more-sheet-backdrop" onClick={() => setMoreOpen(false)} />
+            <div className="more-sheet" role="dialog" aria-label="More navigation">
+              <div className="more-sheet-handle" />
+              <p className="more-sheet-title">More</p>
+              <div className="more-sheet-grid">
+                {SECONDARY_NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    className={pathname.startsWith(item.href) ? "active" : ""}
+                  >
+                    <NavIcon name={item.icon} size={24} />
+                    <span>{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </body>
     </html>
   );
