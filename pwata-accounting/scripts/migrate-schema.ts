@@ -209,22 +209,8 @@ async function migrate() {
 
   console.log("✓ Schema created");
 
-  // Seed default users (idempotent) -------------------------------------
-  const bcrypt = (await import("bcryptjs")).default;
-  const defaultUsers = [
-    { id: "user_gohard", name: "GoHard", email: "gohard@pwata.com", password: "gohard123", role: "admin" },
-    { id: "user_wife",   name: "Wife",   email: "wife@pwata.com",   password: "pwata2024", role: "user" },
-    { id: "user_admin",  name: "Admin",  email: "admin@pwata.ug",   password: "admin123",  role: "admin" },
-  ];
-  for (const u of defaultUsers) {
-    const existing = await sql`SELECT id FROM users WHERE email = ${u.email}` as any[];
-    if (existing.length === 0) {
-      const hash = bcrypt.hashSync(u.password, 10);
-      await sql`INSERT INTO users (id, name, email, password_hash, role)
-        VALUES (${u.id}, ${u.name}, ${u.email}, ${hash}, ${u.role})`;
-      console.log(`✓ Created user ${u.email} / ${u.password}`);
-    }
-  }
+  // User seeding moved to OAuth callback (see src/app/api/auth/callback/google/route.ts).
+  // The users table is now populated when an allowlisted Google account first signs in.
 
   // Seed merchandise products (idempotent) ------------------------------
   const merch = [

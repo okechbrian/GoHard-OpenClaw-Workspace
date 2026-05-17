@@ -50,6 +50,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (body.sale_id) {
+      const saleRows = await sql`SELECT id, amount FROM sales WHERE id = ${body.sale_id}` as any[];
+      const sale = saleRows[0];
+      if (sale) {
+        const totalRows = await sql`SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE sale_id = ${body.sale_id}` as any[];
+        const paid = Number(totalRows[0].total);
+        const newStatus = paid >= Number(sale.amount) ? "paid" : paid > 0 ? "partial" : "pending";
+        await sql`UPDATE sales SET payment_status = ${newStatus}, updated_at = NOW() WHERE id = ${body.sale_id}`;
+      }
+    }
+
     const rows = await sql`SELECT * FROM payments WHERE id = ${id}` as any[];
     return NextResponse.json(rows[0], { status: 201 });
   } catch (error) {

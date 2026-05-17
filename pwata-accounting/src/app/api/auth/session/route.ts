@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionPayload } from "@/lib/server-auth";
 
 export async function GET(request: NextRequest) {
-  const cookie = request.cookies.get("pwata_user");
-  if (!cookie) {
+  const session = await getSessionPayload(request);
+  if (!session) {
     return NextResponse.json({ authenticated: false });
   }
-  try {
-    const user = JSON.parse(cookie.value);
-    return NextResponse.json({ authenticated: true, user });
-  } catch {
-    return NextResponse.json({ authenticated: false });
-  }
+  return NextResponse.json({
+    authenticated: true,
+    user: {
+      id: session.id,
+      name: session.name,
+      email: session.email,
+      role: session.role,
+      picture: session.picture,
+    },
+  });
 }

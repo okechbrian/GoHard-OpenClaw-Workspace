@@ -61,9 +61,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, [pathname, user]);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/login", { method: "DELETE" });
+    await fetch("/api/auth/logout", { method: "DELETE" });
     window.location.href = "/login";
   };
+
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   if (pathname === "/login" || pathname.startsWith("/store")) {
     return (
@@ -108,7 +110,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <small>Accounting</small>
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            {user?.picture && !avatarBroken ? (
+              <img
+                src={user.picture}
+                alt=""
+                referrerPolicy="no-referrer"
+                width={28}
+                height={28}
+                onError={() => setAvatarBroken(true)}
+                style={{ borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border)" }}
+              />
+            ) : (
+              <div style={{
+                width: 28, height: 28, borderRadius: "50%",
+                background: "var(--primary)", color: "#000",
+                display: "grid", placeItems: "center",
+                fontWeight: 700, fontSize: "0.75rem",
+              }}>
+                {user?.name?.[0]?.toUpperCase() ?? "?"}
+              </div>
+            )}
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{user?.name}</span>
             <button onClick={handleLogout} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "inherit" }}>Logout</button>
           </div>
