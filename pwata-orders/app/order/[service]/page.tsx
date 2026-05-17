@@ -108,94 +108,49 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
     toast.success("Brief filled! Review and adjust as needed.");
   }
 
-  async function handlePay() {
+  async function handleSubmit() {
     setProcessing(true);
     setPaymentError("");
 
-    const items = getItems();
-    const momoPhone = normalizePhone(whatsapp || phone);
-
     try {
-      // Create order
-      let createdId = orderId;
-      if (!createdId) {
-        const orderRes = await fetch("/api/create-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            guest_name: name.trim(),
-            guest_phone: normalizePhone(phone),
-            guest_email: email.trim() || undefined,
-            delivery_address: serviceType === "merchandise" ? address.trim() : undefined,
-            notes: notes.trim() || undefined,
-            items,
-            momo_network: momoNetwork,
-            service_type: serviceType === "merchandise" ? "merchandise" : "digital",
-          }),
-        });
-        const orderData = await orderRes.json();
-        if (!orderRes.ok) throw new Error(orderData.error ?? "Failed to create order");
-        createdId = orderData.id;
-        setOrderId(createdId);
-        setOrderNumber(orderData.order_number);
-        setDepositAmount(orderData.deposit_amount);
-        setTotalAmount(orderData.total_amount);
-      }
-
-      // Initiate payment
-      const payRes = await fetch("/api/initiate-payment", {
+      const items = getItems();
+      const orderRes = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order_id: createdId,
-          phone_number: momoPhone,
-          network: momoNetwork,
-          customer_name: name.trim(),
-          customer_email: email.trim() || undefined,
+          guest_name: name.trim(),
+          guest_phone: normalizePhone(phone),
+          guest_email: email.trim() || undefined,
+          delivery_address: serviceType === "merchandise" ? address.trim() : undefined,
+          notes: notes.trim() || undefined,
+          items,
+          momo_network: momoNetwork,
+          service_type: serviceType === "merchandise" ? "merchandise" : "digital",
         }),
       });
-      const payData = await payRes.json();
-      if (!payRes.ok) throw new Error(payData.error ?? "Payment initiation failed");
-
-      // Poll for status
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error ?? "Failed to submit order");
+      setOrderId(orderData.id);
+      setOrderNumber(orderData.order_number);
+      setDepositAmount(orderData.deposit_amount);
+      setTotalAmount(orderData.total_amount);
       setStep(4);
-      let polls = 0;
-      const interval = setInterval(async () => {
-        polls++;
-        if (polls > 100) {
-          clearInterval(interval);
-          setProcessing(false);
-          return;
-        }
-        const pollRes = await fetch(`/api/order-poll/${createdId}`);
-        const pollData = await pollRes.json();
-        if (pollData.payment_status === "partial" || pollData.payment_status === "paid") {
-          clearInterval(interval);
-          router.push(`/track/${createdId}`);
-        } else if (pollData.payment_status === "failed") {
-          clearInterval(interval);
-          setProcessing(false);
-          setPaymentError("Payment failed. Please try again.");
-          setStep(3);
-        }
-      }, 3000);
-
-    } catch (err: any) {
-      setPaymentError(err.message ?? "Something went wrong.");
+    } catch (err: unknown) {
+      setPaymentError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
       setProcessing(false);
-      setStep(3);
     }
   }
 
   const estimatedTotal = getEstimatedTotal();
   const estimatedDeposit = Math.ceil(estimatedTotal * 0.5);
 
-  const stepLabels = ["Brief", "Details", "Review", "Payment"];
+  const stepLabels = ["Brief", "Details", "Review", "Confirmation"];
   const stepHeadings = [
     "Tell us about your project",
     "How can we reach you?",
-    "Confirm & pay deposit",
-    "Processing payment",
+    "Review & submit",
+    "Order received",
   ];
   const progressPct = Math.round(((step - 1) / 3) * 100);
 
@@ -373,10 +328,10 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
           </div>
 
           <div className="deposit-callout">
-            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>50% deposit to confirm order</p>
-            <p style={{ fontSize: "2rem", fontWeight: 900, color: "var(--success)" }}>{formatUGX(estimatedDeposit)}</p>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>Estimated total</p>
+            <p style={{ fontSize: "2rem", fontWeight: 900, color: "var(--success)" }}>{formatUGX(estimatedTotal)}</p>
             <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-              Balance {formatUGX(estimatedTotal - estimatedDeposit)} due on delivery/completion
+              50% deposit ({formatUGX(estimatedDeposit)}) to start · balance on delivery. We'll WhatsApp you to confirm and arrange MoMo payment.
             </p>
           </div>
 
@@ -410,8 +365,8 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
                 <button type="button" className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
                 <button type="button" className="btn btn-primary btn-full btn-lg"
                   disabled={processing}
-                  onClick={handlePay}>
-                  {processing ? "Processing..." : `Pay ${formatUGX(estimatedDeposit)} deposit`}
+                  onClick={handleSubmit}>
+                  {processing ? "Submitting..." : "Send order to Pwata"}
                 </button>
               </div>
             </div>
@@ -419,23 +374,47 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
         </>
       )}
 
-      {/* Step 4: Processing / polling */}
+      {/* Step 4: Order received */}
       {step === 4 && (
-        <div style={{ textAlign: "center", padding: "2rem 1rem" }}>
-          <div className="spinner" style={{ marginBottom: "1.5rem" }} />
-          <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.5rem" }}>Check your phone</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
-            A payment prompt has been sent to <strong>{whatsapp || phone}</strong>.<br />
-            Enter your {momoNetwork === "MTN" ? "MTN MoMo" : "Airtel Money"} PIN to confirm.
+        <div style={{ textAlign: "center", padding: "1.5rem 1rem 2rem" }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: "50%",
+            background: "rgba(34,197,94,.15)", color: "var(--success)",
+            display: "grid", placeItems: "center", fontSize: "2rem",
+            margin: "0 auto 1rem", fontWeight: 900,
+          }}>✓</div>
+          <h3 style={{ fontSize: "1.25rem", fontWeight: 800, marginBottom: "0.5rem" }}>Order received</h3>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginBottom: "1.25rem", lineHeight: 1.5 }}>
+            Thanks{name ? ` ${name.split(" ")[0]}` : ""}! We'll reach you on WhatsApp at{" "}
+            <strong>{whatsapp || phone}</strong> within a few hours to confirm details and arrange the{" "}
+            {momoNetwork === "MTN" ? "MTN MoMo" : "Airtel Money"} deposit.
           </p>
           {orderNumber && (
-            <div className="card" style={{ display: "inline-block", textAlign: "center", marginBottom: "1rem" }}>
+            <div className="card" style={{ display: "inline-block", textAlign: "center", marginBottom: "1.25rem", minWidth: 240 }}>
               <p style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>Order number</p>
               <p style={{ fontSize: "1.5rem", fontWeight: 900 }}>{orderNumber}</p>
-              <p style={{ fontSize: "0.875rem", color: "var(--primary)", fontWeight: 700 }}>Deposit: {formatUGX(depositAmount)}</p>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+                Total {formatUGX(totalAmount)} · 50% deposit {formatUGX(depositAmount)}
+              </p>
             </div>
           )}
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>This may take up to 2 minutes. Don't close this page.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxWidth: 320, margin: "0 auto" }}>
+            <a
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "256775931342"}?text=${encodeURIComponent(`Hi Pwata, I just placed order ${orderNumber}. Ready to confirm details and arrange the deposit.`)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="btn btn-primary btn-lg"
+              style={{ textDecoration: "none" }}
+            >
+              Message Pwata on WhatsApp
+            </a>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => router.push(`/track/${orderId}`)}
+            >
+              Track your order
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -109,6 +109,36 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [newStatus, setNewStatus] = useState("");
   const [statusNotes, setStatusNotes] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
+
+  async function handleMarkDepositPaid() {
+    if (!order) return;
+    const reference = prompt(
+      "Payment reference (MoMo transaction ID, receipt #, or similar). Leave blank for auto.",
+      ""
+    );
+    if (reference === null) return;
+    setMarkingPaid(true);
+    try {
+      const res = await fetch(`/api/orders/${order.id}/mark-deposit-paid`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: reference.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      toast.success(
+        data.invoiceCreated
+          ? "Deposit marked paid · Sale + Invoice created"
+          : "Deposit marked paid"
+      );
+      await fetchOrder();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to mark deposit paid");
+    } finally {
+      setMarkingPaid(false);
+    }
+  }
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -316,6 +346,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
                   <span className={`badge ${order.payment_status === "partial" || order.payment_status === "paid" ? "badge-green" : "badge-yellow"}`}>
                     {order.payment_status === "partial" || order.payment_status === "paid" ? "Paid" : "Pending"}
                   </span>
+                  {order.payment_status === "pending" && (
+                    <button
+                      type="button"
+                      onClick={handleMarkDepositPaid}
+                      disabled={markingPaid}
+                      style={{
+                        marginLeft: "0.75rem",
+                        padding: "0.25rem 0.625rem",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        borderRadius: "6px",
+                        border: "1px solid var(--primary)",
+                        background: "var(--primary)",
+                        color: "#fff",
+                        cursor: markingPaid ? "wait" : "pointer",
+                      }}
+                    >
+                      {markingPaid ? "Marking..." : "Mark deposit paid"}
+                    </button>
+                  )}
                 </dd>
               </>
             )}
