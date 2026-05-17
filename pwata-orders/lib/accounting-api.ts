@@ -26,16 +26,6 @@ export async function createOrder(body: Record<string, unknown>) {
   return data as { id: string; order_number: string; total_amount: number; deposit_amount: number };
 }
 
-export async function initiatePayment(body: Record<string, unknown>) {
-  const res = await apiFetch("/api/store/payment/initiate", {
-    method: "POST",
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? "Failed to initiate payment");
-  return data as { success: boolean; tx_ref: string; message: string };
-}
-
 export async function pollOrder(id: string) {
   const res = await apiFetch(`/api/store/orders/${id}`);
   if (!res.ok) return null;

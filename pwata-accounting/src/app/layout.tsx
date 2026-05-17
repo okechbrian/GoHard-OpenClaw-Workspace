@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
 import NavIcon from "@/components/NavIcon";
+import ThemeToggle from "@/components/ThemeToggle";
 import "./globals.css";
+
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('pwata-theme');var t=s||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 const inter = Inter({
   subsets: ["latin"],
@@ -93,6 +96,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
           <meta name="theme-color" content="#ff7b00" />
           <link rel="manifest" href="/manifest.json" />
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         </head>
         <body>{children}</body>
       </html>
@@ -102,14 +106,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <html lang="en" className={inter.variable}>
-        <head><title>Pwata Creatives</title></head>
+        <head>
+          <title>Pwata Creatives</title>
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        </head>
         <body><div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>Loading...</div></body>
       </html>
     );
   }
 
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
         <title>Pwata Creatives — Accounting</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -117,10 +124,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="manifest" href="/manifest.json" />
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>
         {/* Top bar */}
-        <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(22,22,22,.85)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "0.65rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 30, background: "var(--top-bar-bg)", backdropFilter: "blur(10px)", borderBottom: "1px solid var(--border)", padding: "0.65rem 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="brand-mark">
             <img src="/logo.jpg" alt="Pwata Creatives" className="logo-img" />
             <span className="brand-name">
@@ -150,6 +158,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
             )}
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{user?.name}</span>
+            <ThemeToggle />
             <button onClick={handleLogout} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "inherit" }}>Logout</button>
           </div>
         </div>

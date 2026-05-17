@@ -14,7 +14,7 @@ export default function Home() {
         </div>
         <h1 className="hero-title">Order design that ships in days.</h1>
         <p className="hero-sub">
-          Real designers, AI-assisted briefs. Pay 50% via MoMo, get drafts on WhatsApp, balance on delivery. No agency overhead.
+          Real designers, AI-assisted briefs. Send us your idea, we quote on WhatsApp, you pay 50% to start. Drafts on WhatsApp, balance on delivery. No agency overhead.
         </p>
         <div className="hero-actions">
           <a href="#services" className="btn btn-primary btn-lg" style={{ textDecoration: "none" }}>Browse services →</a>
@@ -47,7 +47,7 @@ export default function Home() {
       <div className="flow">
         {[
           ["1", "Pick a service and fill the brief", "Tell us what you need, or let our AI assistant draft it from a sentence."],
-          ["2", "Pay 50% via MoMo", "MTN or Airtel. We start work the moment payment clears."],
+          ["2", "We reach out on WhatsApp", "We confirm the quote and arrange the 50% deposit on MTN MoMo or Airtel Money."],
           ["3", "Updates on WhatsApp", "Drafts, revisions, and questions, all on the channel you already use."],
           ["4", "Pay balance on delivery", "Final files, prints, or merch in your hands. Then settle the rest."],
         ].map(([n, t, d]) => (
@@ -70,8 +70,12 @@ export default function Home() {
           <p>Every package includes 2 rounds of revisions. We work back-and-forth on WhatsApp until you're happy. Major direction changes count as a new brief.</p>
         </details>
         <details>
-          <summary>Can I pay the full amount upfront?</summary>
-          <p>Yes, just message us. The 50% deposit flow is the default to make things easier, but full payment, instalments, and split payments are all fine.</p>
+          <summary>How do I pay?</summary>
+          <p>After you submit your brief, we follow up on WhatsApp with the final quote and our MoMo merchant code (MTN or Airtel). 50% deposit starts the work, balance on delivery. Full payment upfront and instalments are also fine.</p>
+        </details>
+        <details>
+          <summary>Do I need to download anything?</summary>
+          <p>No. Everything happens on WhatsApp and through this site. No apps to install, no accounts to create.</p>
         </details>
       </div>
     </div>
