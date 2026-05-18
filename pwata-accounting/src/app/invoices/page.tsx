@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface Invoice {
   id: string; invoice_number: string; customer_name: string; subtotal: number; tax_amount: number; total: number; status: string; due_date: string; created_at: string;
@@ -14,6 +16,7 @@ export default function InvoicesPage() {
   const [showForm, setShowForm] = useState(false);
   const [customers, setCustomers] = useState<any[]>([]);
   const [form, setForm] = useState({ customer_id: "", due_date: "", notes: "", items: [{ description: "", quantity: 1, unit_price: "" }] });
+  const { confirm, render: renderConfirm } = useConfirm();
 
   useEffect(() => {
     fetch("/api/invoices").then((r) => r.json()).then(setInvoices);
@@ -44,10 +47,21 @@ export default function InvoicesPage() {
     if (res.ok) setInvoices(invoices.map((inv) => inv.id === id ? { ...inv, status } : inv));
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this invoice?")) return;
+  const handleDelete = async (id: string, number: string) => {
+    const ok = await confirm({
+      title: `Delete invoice ${number}?`,
+      body: "Removes the invoice and its line items. Linked order and sale rows stay.",
+      danger: true,
+      confirmLabel: "Delete invoice",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
-    if (res.ok) setInvoices(invoices.filter((inv) => inv.id !== id));
+    if (res.ok) {
+      setInvoices(invoices.filter((inv) => inv.id !== id));
+      toast.success(`Invoice ${number} deleted`);
+    } else {
+      toast.error("Failed to delete invoice");
+    }
   };
 
   return (
@@ -109,7 +123,7 @@ export default function InvoicesPage() {
                 <td style={{ whiteSpace: "nowrap" }}>{inv.due_date ? formatDate(inv.due_date) : "—"}</td>
                 <td><div style={{ display: "flex", gap: "0.25rem" }}>
                   <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => window.open(`/api/invoices/${inv.id}/pdf`, "_blank")} title="View/Print Invoice">📄</button>
-                  <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => handleDelete(inv.id)}>🗑️</button>
+                  <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => handleDelete(inv.id, inv.invoice_number)}>🗑️</button>
                 </div></td>
               </tr>
             ))}
@@ -117,6 +131,7 @@ export default function InvoicesPage() {
         </table>
         {!invoices.length && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>No invoices yet.</p>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

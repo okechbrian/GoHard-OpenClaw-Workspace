@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatUGX } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface Product {
   id: string;
@@ -72,6 +73,7 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const { confirm, render: renderConfirm } = useConfirm();
 
   useEffect(() => {
     fetch("/api/products")
@@ -155,7 +157,13 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (p: Product) => {
-    if (!confirm(`Delete "${p.name}"?`)) return;
+    const ok = await confirm({
+      title: `Delete ${p.name}?`,
+      body: "Removes the product from the catalogue. Existing orders that reference it stay intact.",
+      danger: true,
+      confirmLabel: "Delete product",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/products/${p.id}`, { method: "DELETE" });
     if (res.ok) {
       setProducts(products.filter((x) => x.id !== p.id));
@@ -268,6 +276,7 @@ export default function ProductsPage() {
         })}
         {!products.length && <div className="card" style={{ textAlign: "center", color: "var(--text-muted)", gridColumn: "1 / -1" }}>No products yet. Tap + Add Product to start.</div>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

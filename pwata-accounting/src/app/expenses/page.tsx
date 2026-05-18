@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface Expense {
   id: string; category: string; description: string; amount: number; payment_method: string; expense_date: string; notes: string;
@@ -15,6 +17,7 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [form, setForm] = useState({ category: "Other", description: "", amount: "", payment_method: "cash", expense_date: new Date().toISOString().split("T")[0], notes: "" });
+  const { confirm, render: renderConfirm } = useConfirm();
 
   useEffect(() => { fetch("/api/expenses").then((r) => r.json()).then(setExpenses); }, []);
 
@@ -40,9 +43,20 @@ export default function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this expense?")) return;
+    const ok = await confirm({
+      title: "Delete this expense?",
+      body: "Removes the expense record permanently.",
+      danger: true,
+      confirmLabel: "Delete expense",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-    if (res.ok) setExpenses(expenses.filter((e) => e.id !== id));
+    if (res.ok) {
+      setExpenses(expenses.filter((e) => e.id !== id));
+      toast.success("Expense deleted");
+    } else {
+      toast.error("Failed to delete expense");
+    }
   };
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
@@ -104,6 +118,7 @@ export default function ExpensesPage() {
         </table>
         {!expenses.length && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>No expenses yet.</p>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

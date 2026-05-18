@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { formatUGX } from "@/lib/utils";
+import SearchableSelect from "@/components/SearchableSelect";
+import OrderSummaryBar from "@/components/OrderSummaryBar";
 
 interface Product {
   id: string;
@@ -28,9 +30,9 @@ interface LineItem {
 }
 
 const PAYMENT_METHODS = [
-  { value: "cash", label: "💵 Cash" },
-  { value: "mtn_momo", label: "📱 MTN MoMo" },
-  { value: "airtel_money", label: "📱 Airtel Money" },
+  { value: "cash", label: "Cash" },
+  { value: "mtn_momo", label: "MTN MoMo" },
+  { value: "airtel_money", label: "Airtel Money" },
 ];
 
 export default function NewOrderPage() {
@@ -70,9 +72,23 @@ export default function NewOrderPage() {
   };
 
   const grandTotal = items.reduce((sum, it) => sum + itemTotal(it), 0);
+  const validItemCount = items.filter((it) => it.product_id && it.quantity > 0).length;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const customerOptions = customers.map((c) => ({
+    id: c.id,
+    label: c.name,
+    sublabel: c.phone ?? undefined,
+  }));
+
+  const productOptions = products.map((p) => ({
+    id: p.id,
+    label: p.name,
+    sublabel: p.category,
+    meta: formatUGX(p.base_price + p.print_fee),
+  }));
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const validItems = items.filter((it) => it.product_id && it.quantity > 0);
     if (!validItems.length) return toast.error("Add at least one item with quantity ≥ 1");
@@ -122,7 +138,7 @@ export default function NewOrderPage() {
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ paddingBottom: validItemCount > 0 ? "150px" : "2rem" }}>
       <header style={{ padding: "1.5rem 0 1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>New Order</h1>
@@ -143,10 +159,16 @@ export default function NewOrderPage() {
           {customerType === "existing" ? (
             <div className="form-group">
               <label className="label">Customer *</label>
-              <select className="select" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-                <option value="">— Select —</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
-              </select>
+              <SearchableSelect
+                value={customerId}
+                onChange={setCustomerId}
+                options={customerOptions}
+                placeholder="Pick a customer"
+                searchPlaceholder="Search by name or phone..."
+                emptyText="No customers match"
+                onCreateNew={() => router.push("/customers")}
+                createNewLabel="+ Add a new customer"
+              />
             </div>
           ) : (
             <>
@@ -179,22 +201,26 @@ export default function NewOrderPage() {
             const p = productMap.get(it.product_id);
             return (
               <div key={i} style={{ paddingBottom: "0.75rem", marginBottom: "0.75rem", borderBottom: i < items.length - 1 ? "1px solid var(--border)" : undefined }}>
+                <div className="form-group">
+                  <label className="label">Product</label>
+                  <SearchableSelect
+                    value={it.product_id}
+                    onChange={(id) => updateItem(i, { product_id: id })}
+                    options={productOptions}
+                    placeholder="Pick a product"
+                    searchPlaceholder="Search products..."
+                    emptyText="No products match"
+                  />
+                </div>
                 <div className="form-row">
-                  <div className="form-group">
-                    <label className="label">Product</label>
-                    <select className="select" value={it.product_id} onChange={(e) => updateItem(i, { product_id: e.target.value })}>
-                      <option value="">— Select —</option>
-                      {products.map((pr) => <option key={pr.id} value={pr.id}>{pr.name} — {formatUGX(pr.base_price + pr.print_fee)}</option>)}
-                    </select>
-                  </div>
                   <div className="form-group">
                     <label className="label">Quantity</label>
                     <input className="input" type="number" min="1" value={it.quantity} onChange={(e) => updateItem(i, { quantity: parseInt(e.target.value) || 0 })} />
                   </div>
-                </div>
-                <div className="form-group" style={{ marginBottom: "0.5rem" }}>
-                  <label className="label">Customizations</label>
-                  <input className="input" placeholder="e.g. Red, size M, logo top-left" value={it.customizations} onChange={(e) => updateItem(i, { customizations: e.target.value })} />
+                  <div className="form-group">
+                    <label className="label">Customizations</label>
+                    <input className="input" placeholder="e.g. Red, size M, logo top-left" value={it.customizations} onChange={(e) => updateItem(i, { customizations: e.target.value })} />
+                  </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem" }}>
                   <span style={{ color: "var(--text-muted)" }}>
@@ -210,11 +236,6 @@ export default function NewOrderPage() {
               </div>
             );
           })}
-
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "0.5rem", borderTop: "1px solid var(--border)" }}>
-            <span style={{ fontSize: "0.875rem", fontWeight: 600 }}>Total</span>
-            <span style={{ fontSize: "1.25rem", fontWeight: 700, color: "#22c55e" }}>{formatUGX(grandTotal)}</span>
-          </div>
         </div>
 
         {/* Delivery & payment */}
@@ -243,6 +264,19 @@ export default function NewOrderPage() {
           </button>
         </div>
       </form>
+
+      <OrderSummaryBar
+        itemCount={validItemCount}
+        subtotal={grandTotal}
+        showDeposit={false}
+        variant="sticky"
+        primaryAction={{
+          label: submitting ? "..." : "Create order",
+          onClick: () => handleSubmit(),
+          disabled: submitting || validItemCount === 0,
+          loading: submitting,
+        }}
+      />
     </div>
   );
 }

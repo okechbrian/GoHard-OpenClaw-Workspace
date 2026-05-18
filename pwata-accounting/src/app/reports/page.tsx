@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface ReportData {
   revenue: number; expenses: number; profit: number; profitMargin: string;
@@ -17,6 +19,7 @@ const paymentLabels: Record<string, string> = { cash: "ðŸ’µ Cash", mtn_momo: "ðŸ
 export default function ReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { confirm, render: renderConfirm } = useConfirm();
 
   useEffect(() => {
     fetch("/api/reports").then((r) => r.json()).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
@@ -53,13 +56,26 @@ export default function ReportsPage() {
         <input type="file" accept=".db" onChange={async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          if (!confirm("This will replace ALL current data. Are you sure?")) return;
+          const ok = await confirm({
+            title: "Restore from backup?",
+            body: "This permanently replaces ALL current orders, sales, invoices, customers, and expenses with the contents of the backup file.",
+            danger: true,
+            confirmLabel: "Restore (destructive)",
+          });
+          if (!ok) {
+            e.target.value = "";
+            return;
+          }
           const formData = new FormData();
           formData.append("backup", file);
           const res = await fetch("/api/backup", { method: "POST", body: formData });
           const result = await res.json();
-          if (result.success) { alert("Restored! Refresh the page."); window.location.reload(); }
-          else { alert("Restore failed: " + result.error); }
+          if (result.success) {
+            toast.success("Restored. Refreshing...");
+            setTimeout(() => window.location.reload(), 1200);
+          } else {
+            toast.error("Restore failed: " + (result.error ?? "unknown"));
+          }
         }} className="input" style={{ padding: "0.5rem" }} />
       </div>
 
@@ -168,6 +184,7 @@ export default function ReportsPage() {
           </div>
         ) : <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>No customers yet</p>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

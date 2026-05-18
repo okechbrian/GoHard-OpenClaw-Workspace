@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatUGX } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface InventoryItem {
   id: string; name: string; description: string; category: string; quantity: number; unit: string; cost_price: number; selling_price: number;
@@ -14,6 +16,7 @@ export default function InventoryPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState({ name: "", description: "", category: "Other", quantity: "0", unit: "pcs", cost_price: "0", selling_price: "0" });
+  const { confirm, render: renderConfirm } = useConfirm();
 
   useEffect(() => { fetch("/api/inventory").then((r) => r.json()).then(setItems); }, []);
 
@@ -38,10 +41,21 @@ export default function InventoryPage() {
     resetForm();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this item?")) return;
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: `Delete ${name}?`,
+      body: "Removes this stock item permanently.",
+      danger: true,
+      confirmLabel: "Delete item",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/inventory/${id}`, { method: "DELETE" });
-    if (res.ok) setItems(items.filter((i) => i.id !== id));
+    if (res.ok) {
+      setItems(items.filter((i) => i.id !== id));
+      toast.success(`${name} deleted`);
+    } else {
+      toast.error("Failed to delete item");
+    }
   };
 
   const lowStock = items.filter((i) => i.quantity <= 5);
@@ -107,7 +121,7 @@ export default function InventoryPage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                   <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => openEdit(item)}>✏️</button>
-                  <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => handleDelete(item.id)}>🗑️</button>
+                  <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => handleDelete(item.id, item.name)}>🗑️</button>
                 </div>
               </div>
             </div>
@@ -115,6 +129,7 @@ export default function InventoryPage() {
         ))}
         {!items.length && <div className="card" style={{ textAlign: "center", color: "var(--text-muted)" }}>No inventory items yet. Tap + Add Item to start.</div>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

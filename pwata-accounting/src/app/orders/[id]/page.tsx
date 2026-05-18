@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import StatusBadge from "@/components/StatusBadge";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { formatUGX, formatDate } from "@/lib/utils";
 import { briefToText, type DesignBrief } from "@/lib/design-brief";
 
@@ -110,13 +111,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [statusNotes, setStatusNotes] = useState("");
   const [updating, setUpdating] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const { prompt: askPrompt, render: renderConfirm } = useConfirm();
 
   async function handleMarkDepositPaid() {
     if (!order) return;
-    const reference = prompt(
-      "Payment reference (MoMo transaction ID, receipt #, or similar). Leave blank for auto.",
-      ""
-    );
+    const reference = await askPrompt({
+      title: "Mark deposit paid",
+      body: "Stamps this order as deposit-paid and auto-creates the Sale + Invoice.",
+      label: "Payment reference (MoMo txn id, receipt #, or blank)",
+      placeholder: "e.g. MP240518.1532.A12345",
+      confirmLabel: "Mark paid",
+    });
     if (reference === null) return;
     setMarkingPaid(true);
     try {
@@ -421,6 +426,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", textAlign: "center" }}>
         {formatDate(order.created_at)}
       </p>
+      {renderConfirm()}
     </div>
   );
 }

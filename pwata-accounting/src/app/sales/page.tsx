@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface Sale {
   id: string;
@@ -21,8 +23,9 @@ export default function SalesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Sale | null>(null);
   const [form, setForm] = useState({ description: "", amount: "", payment_method: "cash", sale_date: new Date().toISOString().split("T")[0], notes: "" });
+  const { confirm, render: renderConfirm } = useConfirm();
 
-  useEffect(() => { fetch("/api/sales").then((r) => r.json()).then(setSales); }, []);
+  useEffect(() => { fetch("/api/sales").then((r) => r.json()).then(setSales).catch(() => toast.error("Failed to load sales")); }, []);
 
   const resetForm = () => { setForm({ description: "", amount: "", payment_method: "cash", sale_date: new Date().toISOString().split("T")[0], notes: "" }); setEditing(null); setShowForm(false); };
 
@@ -50,9 +53,20 @@ export default function SalesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this sale?")) return;
+    const ok = await confirm({
+      title: "Delete this sale?",
+      body: "Removes the revenue record. Linked invoice and payment rows stay.",
+      danger: true,
+      confirmLabel: "Delete sale",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/sales/${id}`, { method: "DELETE" });
-    if (res.ok) setSales(sales.filter((s) => s.id !== id));
+    if (res.ok) {
+      setSales(sales.filter((s) => s.id !== id));
+      toast.success("Sale deleted");
+    } else {
+      toast.error("Failed to delete sale");
+    }
   };
 
   return (
@@ -110,6 +124,7 @@ export default function SalesPage() {
         </table>
         {!sales.length && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>No sales yet. Tap + New Sale to start.</p>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

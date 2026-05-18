@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface Customer {
   id: string; name: string; phone: string; email: string; address: string; notes: string; total_orders: number; total_spent: number;
@@ -12,8 +14,9 @@ export default function CustomersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "" });
+  const { confirm, render: renderConfirm } = useConfirm();
 
-  useEffect(() => { fetch("/api/customers").then((r) => r.json()).then(setCustomers); }, []);
+  useEffect(() => { fetch("/api/customers").then((r) => r.json()).then(setCustomers).catch(() => toast.error("Failed to load customers")); }, []);
 
   const resetForm = () => { setForm({ name: "", phone: "", email: "", address: "", notes: "" }); setEditing(null); setShowForm(false); };
 
@@ -35,10 +38,21 @@ export default function CustomersPage() {
     resetForm();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this customer?")) return;
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: `Delete ${name}?`,
+      body: "This permanently removes the customer record. Linked orders will keep their guest details.",
+      danger: true,
+      confirmLabel: "Delete customer",
+    });
+    if (!ok) return;
     const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
-    if (res.ok) setCustomers(customers.filter((c) => c.id !== id));
+    if (res.ok) {
+      setCustomers(customers.filter((c) => c.id !== id));
+      toast.success(`${name} deleted`);
+    } else {
+      toast.error("Failed to delete customer");
+    }
   };
 
   return (
@@ -84,7 +98,7 @@ export default function CustomersPage() {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                   <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => openEdit(c)}>✏️</button>
-                  <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => handleDelete(c.id)}>🗑️</button>
+                  <button className="btn btn-ghost" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => handleDelete(c.id, c.name)}>🗑️</button>
                 </div>
               </div>
             </div>
@@ -92,6 +106,7 @@ export default function CustomersPage() {
         ))}
         {!customers.length && <div className="card" style={{ textAlign: "center", color: "var(--text-muted)" }}>No customers yet.</div>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }
