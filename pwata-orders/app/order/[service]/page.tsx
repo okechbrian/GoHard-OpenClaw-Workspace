@@ -11,6 +11,7 @@ import MerchBrief from "@/components/brief/MerchBrief";
 import WebsiteBrief, { DEFAULT_WEBSITE_BRIEF, type WebsiteBriefState } from "@/components/brief/WebsiteBrief";
 import BotBrief, { DEFAULT_BOT_BRIEF, type BotBriefState } from "@/components/brief/BotBrief";
 import AIBriefAssistant from "@/components/AIBriefAssistant";
+import StickyOrderBar from "@/components/StickyOrderBar";
 import type { MerchCartItem } from "@/lib/brief-helpers";
 import { logoToOrderItems, socialToOrderItems, printToOrderItems, merchToOrderItems, websiteToOrderItems, botToOrderItems } from "@/lib/brief-helpers";
 import { LOGO_PACKAGES, SOCIAL_PACKAGES, PRINT_PACKAGE_MAP, WEBSITE_PACKAGES, BOT_PACKAGES } from "@/lib/services";
@@ -262,6 +263,11 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
           <AIBriefAssistant serviceType={serviceType} onFill={handleAIFill} />
           <div className="sticky-cta">
             <div className="sticky-cta-inner" style={{ flexDirection: "column", gap: 0 }}>
+              <StickyOrderBar
+                itemCount={getItems().length}
+                total={estimatedTotal}
+                deposit={estimatedDeposit}
+              />
               <div className="sticky-progress">Step <strong>{step}</strong> of 4 · {progressPct}% complete</div>
               <div style={{ display: "flex", gap: ".6rem", width: "100%" }}>
                 <a href="/" className="btn btn-ghost" style={{ textDecoration: "none" }}>← Back</a>
@@ -321,6 +327,11 @@ export default function OrderPage({ params }: { params: Promise<{ service: strin
           </div>
           <div className="sticky-cta">
             <div className="sticky-cta-inner" style={{ flexDirection: "column", gap: 0 }}>
+              <StickyOrderBar
+                itemCount={getItems().length}
+                total={estimatedTotal}
+                deposit={estimatedDeposit}
+              />
               <div className="sticky-progress">Step <strong>{step}</strong> of 4 · {progressPct}% complete</div>
               <div style={{ display: "flex", gap: ".6rem", width: "100%" }}>
                 <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}>← Back</button>

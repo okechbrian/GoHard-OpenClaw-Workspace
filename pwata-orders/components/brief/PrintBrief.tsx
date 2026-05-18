@@ -1,5 +1,6 @@
 "use client";
 import { PRINT_TYPES, PRINT_SIZES, PRINT_STYLES, PRINT_PACKAGE_MAP, formatUGX } from "@/lib/services";
+import PillCluster from "@/components/PillCluster";
 
 export interface PrintBriefState {
   print_type: string;
@@ -31,14 +32,11 @@ export default function PrintBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">What do you need designed? *</label>
-        <div className="style-pills">
-          {PRINT_TYPES.map((t) => (
-            <button key={t} type="button"
-              className={`style-pill${brief.print_type === t ? " selected" : ""}`}
-              onClick={() => set("print_type", brief.print_type === t ? "" : t)}
-            >{t}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={PRINT_TYPES}
+          selected={brief.print_type}
+          onChange={(next) => set("print_type", next)}
+        />
         {pkg && (
           <p style={{ marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--primary)" }}>
             Design fee: {formatUGX(pkg.price)} (50% deposit = {formatUGX(Math.ceil(pkg.price * 0.5))})
@@ -48,14 +46,11 @@ export default function PrintBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Size / format</label>
-        <div className="style-pills">
-          {PRINT_SIZES.map((s) => (
-            <button key={s} type="button"
-              className={`style-pill${brief.size === s ? " selected" : ""}`}
-              onClick={() => set("size", s)}
-            >{s}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={PRINT_SIZES}
+          selected={brief.size}
+          onChange={(next) => set("size", next || "A4")}
+        />
       </div>
 
       <p className="section-head">Content & style</p>
@@ -71,14 +66,11 @@ export default function PrintBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Style</label>
-        <div className="style-pills">
-          {PRINT_STYLES.map((s) => (
-            <button key={s} type="button"
-              className={`style-pill${brief.style === s ? " selected" : ""}`}
-              onClick={() => set("style", brief.style === s ? "" : s)}
-            >{s}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={PRINT_STYLES}
+          selected={brief.style}
+          onChange={(next) => set("style", next)}
+        />
       </div>
 
       <div className="form-group">

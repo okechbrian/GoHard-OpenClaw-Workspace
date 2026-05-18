@@ -1,6 +1,7 @@
 "use client";
 import { SOCIAL_PACKAGES, SOCIAL_PLATFORMS, SOCIAL_POST_TYPES, SOCIAL_PURPOSES } from "@/lib/services";
 import PlatformIcon from "@/components/PlatformIcon";
+import PillCluster from "@/components/PillCluster";
 
 export interface SocialBriefState {
   package_id: string;
@@ -62,14 +63,11 @@ export default function SocialBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Post type</label>
-        <div className="style-pills">
-          {SOCIAL_POST_TYPES.map((t) => (
-            <button key={t} type="button"
-              className={`style-pill${brief.post_type === t ? " selected" : ""}`}
-              onClick={() => set("post_type", brief.post_type === t ? "" : t)}
-            >{t}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={SOCIAL_POST_TYPES}
+          selected={brief.post_type}
+          onChange={(next) => set("post_type", next)}
+        />
       </div>
 
       <div className="form-group">
@@ -99,14 +97,11 @@ export default function SocialBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Purpose</label>
-        <div className="style-pills">
-          {SOCIAL_PURPOSES.map((p) => (
-            <button key={p} type="button"
-              className={`style-pill${brief.purpose === p ? " selected" : ""}`}
-              onClick={() => set("purpose", brief.purpose === p ? "" : p)}
-            >{p}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={SOCIAL_PURPOSES}
+          selected={brief.purpose}
+          onChange={(next) => set("purpose", next)}
+        />
       </div>
 
       <div className="form-group">

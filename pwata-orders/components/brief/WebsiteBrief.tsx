@@ -7,6 +7,8 @@ import {
   WEBSITE_DOMAIN_STATUS,
   WEBSITE_BRAND_STATUS,
 } from "@/lib/services";
+import PackageSelector from "@/components/PackageSelector";
+import PillCluster from "@/components/PillCluster";
 
 export interface WebsiteBriefState {
   package_id: string;
@@ -41,30 +43,14 @@ export default function WebsiteBrief({ brief, onChange }: Props) {
   const set = <K extends keyof WebsiteBriefState>(k: K, v: WebsiteBriefState[K]) =>
     onChange({ ...brief, [k]: v });
 
-  const toggleFeature = (f: string) => {
-    const next = brief.preferred_features.includes(f)
-      ? brief.preferred_features.filter((x) => x !== f)
-      : [...brief.preferred_features, f];
-    set("preferred_features", next);
-  };
-
   return (
     <div>
       <p className="section-head" style={{ marginTop: 0 }}>Choose a package</p>
-      <div className="package-grid">
-        {WEBSITE_PACKAGES.map((pkg) => (
-          <button
-            key={pkg.id}
-            className={`package-card${brief.package_id === pkg.id ? " selected" : ""}`}
-            onClick={() => set("package_id", pkg.id)}
-            type="button"
-          >
-            <div className="package-name">{pkg.label}</div>
-            <div className="package-price">UGX {pkg.price.toLocaleString("en-UG")}</div>
-            <div className="package-desc">{pkg.description}</div>
-          </button>
-        ))}
-      </div>
+      <PackageSelector
+        packages={WEBSITE_PACKAGES}
+        selected={brief.package_id}
+        onSelect={(id) => set("package_id", id)}
+      />
 
       <p className="section-head">Business basics</p>
 
@@ -87,26 +73,21 @@ export default function WebsiteBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Main purpose *</label>
-        <div className="style-pills">
-          {WEBSITE_PURPOSES.map((p) => (
-            <button key={p} type="button"
-              className={`style-pill${brief.website_purpose === p ? " selected" : ""}`}
-              onClick={() => set("website_purpose", brief.website_purpose === p ? "" : p)}
-            >{p}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={WEBSITE_PURPOSES}
+          selected={brief.website_purpose}
+          onChange={(next) => set("website_purpose", next)}
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Features you want</label>
-        <div className="style-pills">
-          {WEBSITE_FEATURES.map((f) => (
-            <button key={f} type="button"
-              className={`style-pill${brief.preferred_features.includes(f) ? " multi-selected" : ""}`}
-              onClick={() => toggleFeature(f)}
-            >{f}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={WEBSITE_FEATURES}
+          selected={brief.preferred_features}
+          onChange={(next) => set("preferred_features", next)}
+          multi
+        />
       </div>
 
       <div className="form-group">
@@ -118,38 +99,29 @@ export default function WebsiteBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Branding</label>
-        <div className="style-pills">
-          {WEBSITE_BRAND_STATUS.map((b) => (
-            <button key={b} type="button"
-              className={`style-pill${brief.brand_status === b ? " selected" : ""}`}
-              onClick={() => set("brand_status", brief.brand_status === b ? "" : b)}
-            >{b}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={WEBSITE_BRAND_STATUS}
+          selected={brief.brand_status}
+          onChange={(next) => set("brand_status", next)}
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Domain name</label>
-        <div className="style-pills">
-          {WEBSITE_DOMAIN_STATUS.map((d) => (
-            <button key={d} type="button"
-              className={`style-pill${brief.domain_status === d ? " selected" : ""}`}
-              onClick={() => set("domain_status", brief.domain_status === d ? "" : d)}
-            >{d}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={WEBSITE_DOMAIN_STATUS}
+          selected={brief.domain_status}
+          onChange={(next) => set("domain_status", next)}
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Content (text + images)</label>
-        <div className="style-pills">
-          {WEBSITE_CONTENT_READY.map((c) => (
-            <button key={c} type="button"
-              className={`style-pill${brief.content_ready === c ? " selected" : ""}`}
-              onClick={() => set("content_ready", brief.content_ready === c ? "" : c)}
-            >{c}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={WEBSITE_CONTENT_READY}
+          selected={brief.content_ready}
+          onChange={(next) => set("content_ready", next)}
+        />
       </div>
 
       <div className="form-group">

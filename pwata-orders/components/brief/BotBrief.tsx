@@ -8,6 +8,8 @@ import {
   BOT_VOLUMES,
   BOT_WHATSAPP_STATUS,
 } from "@/lib/services";
+import PackageSelector from "@/components/PackageSelector";
+import PillCluster from "@/components/PillCluster";
 
 export interface BotBriefState {
   package_id: string;
@@ -43,29 +45,14 @@ export default function BotBrief({ brief, onChange }: Props) {
   const set = <K extends keyof BotBriefState>(k: K, v: BotBriefState[K]) =>
     onChange({ ...brief, [k]: v });
 
-  const toggleArr = (k: "integrations_needed" | "languages", v: string) => {
-    const current = brief[k];
-    const next = current.includes(v) ? current.filter((x) => x !== v) : [...current, v];
-    set(k, next);
-  };
-
   return (
     <div>
       <p className="section-head" style={{ marginTop: 0 }}>Choose a package</p>
-      <div className="package-grid">
-        {BOT_PACKAGES.map((pkg) => (
-          <button
-            key={pkg.id}
-            className={`package-card${brief.package_id === pkg.id ? " selected" : ""}`}
-            onClick={() => set("package_id", pkg.id)}
-            type="button"
-          >
-            <div className="package-name">{pkg.label}</div>
-            <div className="package-price">UGX {pkg.price.toLocaleString("en-UG")}</div>
-            <div className="package-desc">{pkg.description}</div>
-          </button>
-        ))}
-      </div>
+      <PackageSelector
+        packages={BOT_PACKAGES}
+        selected={brief.package_id}
+        onSelect={(id) => set("package_id", id)}
+      />
 
       <p className="section-head">Business basics</p>
 
@@ -83,26 +70,20 @@ export default function BotBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Main purpose *</label>
-        <div className="style-pills">
-          {BOT_PURPOSES.map((p) => (
-            <button key={p} type="button"
-              className={`style-pill${brief.bot_purpose === p ? " selected" : ""}`}
-              onClick={() => set("bot_purpose", brief.bot_purpose === p ? "" : p)}
-            >{p}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={BOT_PURPOSES}
+          selected={brief.bot_purpose}
+          onChange={(next) => set("bot_purpose", next)}
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Conversation style *</label>
-        <div className="style-pills">
-          {BOT_COMPLEXITIES.map((c) => (
-            <button key={c} type="button"
-              className={`style-pill${brief.conversation_complexity === c ? " selected" : ""}`}
-              onClick={() => set("conversation_complexity", brief.conversation_complexity === c ? "" : c)}
-            >{c}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={BOT_COMPLEXITIES}
+          selected={brief.conversation_complexity}
+          onChange={(next) => set("conversation_complexity", next)}
+        />
       </div>
 
       <div className="form-group">
@@ -118,50 +99,40 @@ export default function BotBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">WhatsApp Business account</label>
-        <div className="style-pills">
-          {BOT_WHATSAPP_STATUS.map((w) => (
-            <button key={w} type="button"
-              className={`style-pill${brief.whatsapp_business_status === w ? " selected" : ""}`}
-              onClick={() => set("whatsapp_business_status", brief.whatsapp_business_status === w ? "" : w)}
-            >{w}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={BOT_WHATSAPP_STATUS}
+          selected={brief.whatsapp_business_status}
+          onChange={(next) => set("whatsapp_business_status", next)}
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Integrations needed</label>
-        <div className="style-pills">
-          {BOT_INTEGRATIONS.map((i) => (
-            <button key={i} type="button"
-              className={`style-pill${brief.integrations_needed.includes(i) ? " multi-selected" : ""}`}
-              onClick={() => toggleArr("integrations_needed", i)}
-            >{i}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={BOT_INTEGRATIONS}
+          selected={brief.integrations_needed}
+          onChange={(next) => set("integrations_needed", next)}
+          multi
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Languages</label>
-        <div className="style-pills">
-          {BOT_LANGUAGES.map((l) => (
-            <button key={l} type="button"
-              className={`style-pill${brief.languages.includes(l) ? " multi-selected" : ""}`}
-              onClick={() => toggleArr("languages", l)}
-            >{l}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={BOT_LANGUAGES}
+          selected={brief.languages}
+          onChange={(next) => set("languages", next)}
+          multi
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Expected message volume (per month)</label>
-        <div className="style-pills">
-          {BOT_VOLUMES.map((v) => (
-            <button key={v} type="button"
-              className={`style-pill${brief.approx_monthly_messages === v ? " selected" : ""}`}
-              onClick={() => set("approx_monthly_messages", brief.approx_monthly_messages === v ? "" : v)}
-            >{v}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={BOT_VOLUMES}
+          selected={brief.approx_monthly_messages}
+          onChange={(next) => set("approx_monthly_messages", next)}
+        />
       </div>
 
       <div className="form-group">

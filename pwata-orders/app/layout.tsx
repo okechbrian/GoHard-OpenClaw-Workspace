@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
@@ -17,12 +17,15 @@ export const metadata: Metadata = {
   title: "Pwata Creatives · Order Design Work",
   description: "Custom graphic design, websites, and chatbots from Pwata Creatives. Merchandise, logos, social media, print, websites, WhatsApp + Telegram bots — delivered in days.",
   manifest: "/manifest.json",
-  themeColor: "#ff7b00",
   appleWebApp: {
     capable: true,
     title: "Pwata",
     statusBarStyle: "black-translucent",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ff7b00",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,5 +1,7 @@
 "use client";
 import { LOGO_STYLES, LOGO_USES, LOGO_PACKAGES } from "@/lib/services";
+import PackageSelector from "@/components/PackageSelector";
+import PillCluster from "@/components/PillCluster";
 
 export interface LogoBriefState {
   package_id: string;
@@ -29,20 +31,11 @@ export default function LogoBrief({ brief, onChange }: Props) {
   return (
     <div>
       <p className="section-head" style={{ marginTop: 0 }}>Choose a package</p>
-      <div className="package-grid">
-        {LOGO_PACKAGES.map((pkg) => (
-          <button
-            key={pkg.id}
-            className={`package-card${brief.package_id === pkg.id ? " selected" : ""}`}
-            onClick={() => set("package_id", pkg.id)}
-            type="button"
-          >
-            <div className="package-name">{pkg.label}</div>
-            <div className="package-price">UGX {pkg.price.toLocaleString("en-UG")}</div>
-            <div className="package-desc">{pkg.description}</div>
-          </button>
-        ))}
-      </div>
+      <PackageSelector
+        packages={LOGO_PACKAGES}
+        selected={brief.package_id}
+        onSelect={(id) => set("package_id", id)}
+      />
 
       <p className="section-head">Business basics</p>
 
@@ -65,26 +58,20 @@ export default function LogoBrief({ brief, onChange }: Props) {
 
       <div className="form-group">
         <label className="label">Style preference</label>
-        <div className="style-pills">
-          {LOGO_STYLES.map((s) => (
-            <button key={s} type="button"
-              className={`style-pill${brief.style_preference === s ? " selected" : ""}`}
-              onClick={() => set("style_preference", brief.style_preference === s ? "" : s)}
-            >{s}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={LOGO_STYLES}
+          selected={brief.style_preference}
+          onChange={(next) => set("style_preference", next)}
+        />
       </div>
 
       <div className="form-group">
         <label className="label">Intended use</label>
-        <div className="style-pills">
-          {LOGO_USES.map((u) => (
-            <button key={u} type="button"
-              className={`style-pill${brief.intended_use === u ? " selected" : ""}`}
-              onClick={() => set("intended_use", brief.intended_use === u ? "" : u)}
-            >{u}</button>
-          ))}
-        </div>
+        <PillCluster
+          options={LOGO_USES}
+          selected={brief.intended_use}
+          onChange={(next) => set("intended_use", next)}
+        />
       </div>
 
       <div className="form-group">

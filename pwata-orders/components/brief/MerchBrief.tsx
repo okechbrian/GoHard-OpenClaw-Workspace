@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MERCH_STYLES, MERCH_COLORS, MERCH_PLACEMENTS, formatUGX } from "@/lib/services";
 import type { MerchCartItem } from "@/lib/brief-helpers";
+import PillCluster from "@/components/PillCluster";
 
 interface Product {
   id: string; name: string; category: string;
@@ -20,6 +21,7 @@ const CATEGORIES = ["All", "apparel", "drinkware", "accessories", "print"];
 export default function MerchBrief({ cart, onChange }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [category, setCategory] = useState("All");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Product | null>(null);
   const [variant, setVariant] = useState({ color: "", size: "", qty: 1 });
@@ -31,7 +33,17 @@ export default function MerchBrief({ cart, onChange }: Props) {
       .catch(() => setLoading(false));
   }, []);
 
-  const filtered = category === "All" ? products : products.filter((p) => p.category === category);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return products.filter((p) => {
+      if (category !== "All" && p.category !== category) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+      );
+    });
+  }, [products, category, search]);
 
   const addToCart = () => {
     if (!modal) return;
@@ -63,6 +75,19 @@ export default function MerchBrief({ cart, onChange }: Props) {
   return (
     <div>
       <p className="section-head" style={{ marginTop: 0 }}>Browse products</p>
+
+      {/* Search */}
+      <div className="form-group" style={{ marginBottom: "0.5rem" }}>
+        <input
+          type="search"
+          className="input"
+          placeholder="Search products (e.g. hoodie, mug, tote)"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search products"
+        />
+      </div>
+
       {/* Category tabs */}
       <div className="category-tabs" style={{ marginBottom: "0.5rem" }}>
         {CATEGORIES.map((c) => (
@@ -75,6 +100,14 @@ export default function MerchBrief({ cart, onChange }: Props) {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>Loading products...</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-muted)", background: "var(--bg-input)", borderRadius: 10, marginBottom: "1rem" }}>
+          <p style={{ fontSize: "0.85rem" }}>No products match &quot;{search}&quot;.</p>
+          <button type="button" onClick={() => { setSearch(""); setCategory("All"); }}
+            style={{ marginTop: "0.5rem", background: "none", border: "none", color: "var(--primary)", fontWeight: 600, cursor: "pointer", fontSize: "0.8rem" }}>
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="product-grid" style={{ marginBottom: cart.length ? "1rem" : "5rem" }}>
           {filtered.map((p) => (
@@ -125,25 +158,19 @@ export default function MerchBrief({ cart, onChange }: Props) {
               </div>
               <div className="form-group">
                 <label className="label">Style</label>
-                <div className="style-pills">
-                  {MERCH_STYLES.map((s) => (
-                    <button key={s} type="button"
-                      className={`style-pill${item.style === s ? " selected" : ""}`}
-                      onClick={() => updateCartItem(idx, "style", item.style === s ? "" : s)}
-                    >{s}</button>
-                  ))}
-                </div>
+                <PillCluster
+                  options={MERCH_STYLES}
+                  selected={item.style ?? ""}
+                  onChange={(next) => updateCartItem(idx, "style", next)}
+                />
               </div>
               <div className="form-group">
                 <label className="label">Placement</label>
-                <div className="style-pills">
-                  {MERCH_PLACEMENTS.map((p) => (
-                    <button key={p} type="button"
-                      className={`style-pill${item.placement === p ? " selected" : ""}`}
-                      onClick={() => updateCartItem(idx, "placement", item.placement === p ? "" : p)}
-                    >{p}</button>
-                  ))}
-                </div>
+                <PillCluster
+                  options={MERCH_PLACEMENTS}
+                  selected={item.placement ?? ""}
+                  onChange={(next) => updateCartItem(idx, "placement", next)}
+                />
               </div>
             </div>
           ))}

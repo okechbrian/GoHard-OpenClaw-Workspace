@@ -390,10 +390,98 @@ body {
 .brief-strength-segment.filled-complete { background: var(--success); }
 .brief-strength-label strong { color: var(--text); }
 
-/* ---- Sticky CTA bar ---- */
+/* ---- Package selector (rosemary-style compact tier picker) ---- */
+.pkg-selector {
+  margin-bottom: 1rem;
+}
+.pkg-chip-row {
+  display: flex; gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 0.5rem;
+}
+.pkg-chip-row::-webkit-scrollbar { display: none; }
+.pkg-chip {
+  flex-shrink: 0;
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, background .15s, color .15s;
+  text-align: left;
+}
+.pkg-chip:hover { border-color: var(--border-strong); }
+.pkg-chip.active {
+  border-color: var(--primary);
+  background: rgba(255,123,0,.08);
+}
+.pkg-chip-label {
+  font-size: 0.78rem; font-weight: 700; letter-spacing: -0.01em;
+}
+.pkg-chip-price {
+  font-size: 0.72rem; color: var(--text-muted); font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pkg-chip.active .pkg-chip-price { color: var(--primary); }
+.pkg-detail {
+  font-size: 0.78rem; color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ---- Pill cluster expander chip ---- */
+.cluster-expander {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem; font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.cluster-expander:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(255,123,0,.06);
+}
+
+/* ---- Sticky order summary (embedded inside sticky-cta) ---- */
+.sticky-order-bar-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0 0.5rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  width: 100%;
+}
+.sticky-order-bar-count {
+  font-weight: 700; color: var(--text);
+  white-space: nowrap;
+}
+.sticky-order-bar-deposit {
+  font-size: 0.72rem; color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---- Sticky CTA bar (per-step Continue button) ---- */
 .sticky-cta {
   position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(22,22,22,.95);
+  background: var(--header-bg);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border);
   padding: 0.85rem 1rem; z-index: 40;
