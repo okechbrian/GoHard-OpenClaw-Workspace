@@ -11,6 +11,13 @@ Required for the customer store to work end-to-end:
 | `BLOB_READ_WRITE_TOKEN` | Auto-injected by `vercel blob create-store --yes` | Vercel Blob upload token |
 | `NEXT_PUBLIC_ENABLE_UPLOADS` | Vercel env | Set to `true` to show the upload zone in Step 2 of the order wizard |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Vercel env | Format `256XXXXXXXXX` (no `+`, no spaces). Drives the WhatsApp CTA on the customer tracking page |
+| `WHATSAPP_VERIFY_TOKEN` | Vercel env | Secret value Meta uses to verify `/api/whatsapp/webhook` |
+| `WHATSAPP_ACCESS_TOKEN` | Vercel env | Meta WhatsApp Cloud API access token for sending replies |
+| `WHATSAPP_PHONE_NUMBER_ID` | Vercel env | Meta phone number ID used by the Cloud API |
+| `WHATSAPP_GRAPH_VERSION` | Vercel env | Optional. Defaults to `v25.0` |
+| `GEMINI_API_KEY` | Vercel env | Enables AI-assisted WhatsApp replies |
+| `WHATSAPP_AI_MODEL` | Vercel env | Optional. Defaults to `gemini-2.5-flash` |
+| `ORDERS_APP_PUBLIC_URL` | Vercel env | Optional public URL used in WhatsApp bot replies. Falls back to `ORDERS_APP_URL` |
 
 Set via:
 
@@ -46,6 +53,23 @@ vercel blob create-store pwata-uploads --access public --yes \
 ```
 
 This creates the store *and* connects it to the project, auto-injecting `BLOB_READ_WRITE_TOKEN` into all three environments.
+
+## WhatsApp bot webhook setup
+
+The Pwata business WhatsApp bot webhook lives at:
+
+```text
+https://<your-domain>/api/whatsapp/webhook
+```
+
+In the Meta app dashboard:
+
+1. Add the callback URL above.
+2. Set the verify token to the same value as `WHATSAPP_VERIFY_TOKEN`.
+3. Subscribe the WhatsApp Business Account webhook to `messages`.
+4. Set `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, and `GEMINI_API_KEY` in Vercel.
+
+The current bot slice handles menu/help messages, order-page routing, price starting points, order status lookups by order number or by the sender's phone number, and AI-assisted replies for open-ended customer messages. If `GEMINI_API_KEY` is missing or Gemini fails, the bot falls back to the menu instead of breaking the webhook.
 
 ## Local dev
 
