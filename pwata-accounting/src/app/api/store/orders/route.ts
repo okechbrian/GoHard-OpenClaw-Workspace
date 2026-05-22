@@ -1,6 +1,8 @@
 import { sql } from "@/lib/db";
 import { corsHeaders, handlePreflight, checkApiKey } from "@/lib/store-cors";
 import { generateId, generateStoreOrderNumber } from "@/lib/utils";
+import { sendWhatsAppText, normalizePhoneDigits } from "@/lib/whatsapp-bot";
+import { sendTelegramText } from "@/lib/telegram-bot";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function OPTIONS(request: NextRequest) {
@@ -110,6 +112,76 @@ export async function POST(request: NextRequest) {
       INSERT INTO order_status_history (id, order_id, status, notes)
       VALUES (${generateId()}, ${orderId}, 'pending', 'Store order created – awaiting payment')
     `;
+
+    // Outbound WhatsApp notifications
+    const phone = body.guest_phone.trim();
+    const name = body.guest_name.trim();
+    const orderRef = orderNumber;
+    const deposit = depositAmount;
+    const total = totalAmount;
+
+    const ORDER_APP_URL = (
+      process.env.ORDERS_APP_PUBLIC_URL ||
+      process.env.ORDERS_APP_URL ||
+      "https://pwata-orders.vercel.app"
+    ).replace(/\/$/, "");
+
+    // 1. Client Order Confirmation
+    const clientMessage = [
+      `Hi ${name.split(" ")[0]}, we've received your Pwata order brief! 🎨`,
+      "",
+      `Order Number: *${orderRef}*`,
+      `Total Amount: UGX ${total.toLocaleString()}`,
+      `50% Deposit: *UGX ${deposit.toLocaleString()}*`,
+      "",
+      `You can track your design progress and updates here:`,
+      `${ORDER_APP_URL}/track/${orderRef}`,
+      "",
+      `We will review your brief and contact you here on WhatsApp shortly to confirm details and arrange payment of the deposit. Thank you!`,
+    ].join("\n");
+
+    try {
+      const normalizedPhone = normalizePhoneDigits(phone);
+      await sendWhatsAppText(normalizedPhone, clientMessage);
+      console.log(`✅ Outbound order confirmation WhatsApp sent to client ${normalizedPhone}`);
+    } catch (err) {
+      console.error("❌ Failed to send WhatsApp order confirmation to client:", err);
+    }
+
+    // 2. Admin Alert Notification
+    const adminPhone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "256775931342";
+    const adminMessage = [
+      `🚨 *New Pwata Order Received!*`,
+      "",
+      `Order Number: *${orderRef}*`,
+      `Client: *${name}* (${phone})`,
+      `Service: *${body.service_type || "merchandise"}*`,
+      `Total Amount: UGX ${total.toLocaleString()}`,
+      `Deposit Due: UGX ${deposit.toLocaleString()}`,
+      "",
+      `View order details and track updates in the admin dashboard:`,
+      `https://pwata-accounting.vercel.app/orders/${orderId}`,
+    ].join("\n");
+
+    try {
+      const normalizedAdminPhone = normalizePhoneDigits(adminPhone);
+      await sendWhatsAppText(normalizedAdminPhone, adminMessage);
+      console.log(`✅ Admin notification WhatsApp sent to ${normalizedAdminPhone}`);
+    } catch (err) {
+      console.error("❌ Failed to send WhatsApp admin notification:", err);
+    }
+
+    // 3. Telegram Admin Alert Notification
+    const telegramAdminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    if (telegramAdminChatId) {
+      try {
+        // We can reuse the same adminMessage text, as Telegram supports Markdown similarly
+        await sendTelegramText(telegramAdminChatId, adminMessage);
+        console.log(`✅ Admin notification Telegram sent to Chat ID ${telegramAdminChatId}`);
+      } catch (err) {
+        console.error("❌ Failed to send Telegram admin notification:", err);
+      }
+    }
 
     return NextResponse.json(
       { id: orderId, order_number: orderNumber, total_amount: totalAmount, deposit_amount: depositAmount },

@@ -1,5 +1,7 @@
 import { sql, getOrderWithDetails } from "./db";
 import { generateId, generateInvoiceNumber } from "./utils";
+import { sendWhatsAppText, normalizePhoneDigits } from "./whatsapp-bot";
+import { sendTelegramText } from "./telegram-bot";
 
 export async function onOrderStatusChange(
   orderId: string,
@@ -66,6 +68,68 @@ export async function onOrderStatusChange(
 
         pdfUrl = `/api/invoices/${invoiceId}/pdf`;
         console.log("✅ Automation triggered for order", order.order_number, "— Sale + Invoice created.", pdfUrl);
+      }
+    }
+
+    // Outbound WhatsApp notification to customer
+    const customerPhone = order.customer_phone || order.guest_phone;
+    const customerName = order.customer_name || order.guest_name || "there";
+    const nameFirst = customerName.trim().split(/\s+/)[0] || "there";
+    
+    const ORDER_APP_URL = (
+      process.env.ORDERS_APP_PUBLIC_URL ||
+      process.env.ORDERS_APP_URL ||
+      "https://pwata-orders.vercel.app"
+    ).replace(/\/$/, "");
+    
+    const trackingLink = `${ORDER_APP_URL}/track/${order.order_number}`;
+
+    let messageText = "";
+    switch (newStatus) {
+      case "in_design":
+        messageText = `Hi ${nameFirst}, your Pwata order *${order.order_number}* is now *In Design*! 🎨 Our designers are working on your drafts. We will share them here shortly.`;
+        break;
+      case "printing":
+        messageText = `Hi ${nameFirst}, your Pwata order *${order.order_number}* is now *Printing*! 🖨️ We are producing your custom items and will let you know once they are ready.`;
+        break;
+      case "ready_for_delivery":
+        messageText = `Hi ${nameFirst}, your Pwata order *${order.order_number}* is *Ready for Delivery*! 🚚 We are coordinating delivery details and will contact you shortly.`;
+        break;
+      case "completed":
+        messageText = `Hi ${nameFirst}, your Pwata order *${order.order_number}* has been *Completed*! 🎉 Thank you for choosing Pwata Creatives. Let us know if you need anything else!`;
+        break;
+      case "cancelled":
+        messageText = `Hi ${nameFirst}, your Pwata order *${order.order_number}* has been *Cancelled*. If you think this was a mistake, please reply to this message.`;
+        break;
+    }
+
+    if (messageText) {
+      const body = [
+        messageText,
+        "",
+        `Track progress: ${trackingLink}`
+      ].join("\n");
+
+      // 1. Outbound WhatsApp notification to customer
+      if (customerPhone) {
+        try {
+          const normalizedPhone = normalizePhoneDigits(customerPhone);
+          await sendWhatsAppText(normalizedPhone, body);
+          console.log(`✅ Outbound status update WhatsApp sent to ${normalizedPhone} for status ${newStatus}`);
+        } catch (err) {
+          console.error(`❌ Failed to send outbound status update WhatsApp to ${customerPhone}:`, err);
+        }
+      }
+
+      // 2. Outbound Telegram notification to customer (if chat ID is known)
+      const telegramChatId = (order as any).telegram_chat_id;
+      if (telegramChatId) {
+        try {
+          await sendTelegramText(telegramChatId, body);
+          console.log(`✅ Outbound status update Telegram sent to Chat ID ${telegramChatId} for status ${newStatus}`);
+        } catch (err) {
+          console.error(`❌ Failed to send outbound status update Telegram to ${telegramChatId}:`, err);
+        }
       }
     }
 
