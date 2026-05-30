@@ -24,17 +24,11 @@ export default function Home() {
             <span>Talk to us</span>
           </a>
         </div>
-        <div className="hero-trust">
-          <span><strong>4.9★</strong> on WhatsApp</span>
-          <span><strong>50+</strong> projects shipped</span>
-          <span><strong>Same-day</strong> quotes</span>
-        </div>
       </section>
 
       {/* Services */}
       <p id="services" className="section-head">Pick a service</p>
       <div className="service-grid">
-        <ServiceCard service="merchandise" priceFrom={formatUGX(25000)} />
         <ServiceCard service="logo" priceFrom={formatUGX(80000)} />
         <ServiceCard service="social" priceFrom={formatUGX(60000)} />
         <ServiceCard service="print" priceFrom={formatUGX(25000)} />

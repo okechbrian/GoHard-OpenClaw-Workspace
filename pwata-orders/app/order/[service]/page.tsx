@@ -16,7 +16,7 @@ import type { MerchCartItem } from "@/lib/brief-helpers";
 import { logoToOrderItems, socialToOrderItems, printToOrderItems, merchToOrderItems, websiteToOrderItems, botToOrderItems } from "@/lib/brief-helpers";
 import { LOGO_PACKAGES, SOCIAL_PACKAGES, PRINT_PACKAGE_MAP, WEBSITE_PACKAGES, BOT_PACKAGES } from "@/lib/services";
 
-const VALID_SERVICES: ServiceType[] = ["merchandise", "logo", "social", "print", "website", "bot"];
+const VALID_SERVICES: ServiceType[] = ["logo", "social", "print", "website", "bot"];
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
