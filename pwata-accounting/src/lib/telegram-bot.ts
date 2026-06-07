@@ -1,5 +1,11 @@
+import { neon } from "@neondatabase/serverless";
 import { formatUGX } from "@/lib/utils";
-import { statusLabel } from "@/lib/whatsapp-bot"; // Reuse the status labels
+import { statusLabel } from "@/lib/whatsapp-bot";
+import { getBotSession, updateBotSessionHistory, setHumanMode, getProductsForAI } from "./bot-memory";
+import type { Content } from "@google/genai";
+
+// Use Neon directly — avoids importing db.ts which loads better-sqlite3 and crashes on Vercel
+const sqlDirect = neon(process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://placeholder");
 
 export type IncomingTelegramText = {
   chatId: number;
@@ -51,9 +57,17 @@ export function extractTelegramMessages(payload: any): IncomingTelegramText[] {
   return messages;
 }
 
-export async function buildTelegramReply(chatId: number, rawText: string): Promise<string> {
+export async function buildTelegramReply(chatId: number, rawText: string): Promise<string | null> {
   const text = rawText.trim();
   const lower = text.toLowerCase();
+
+  const session = await getBotSession(chatId);
+
+  // If in human mode, AI is paused. The admin handles it manually.
+  if (session.is_human_mode) {
+    // If the user wants to resume bot, they could type /reset but for now we ignore.
+    return null; 
+  }
 
   // Handle deep linking like /start ORDER_123
   if (lower.startsWith("/start")) {
@@ -61,47 +75,25 @@ export async function buildTelegramReply(chatId: number, rawText: string): Promi
     if (parts.length > 1 && parts[1].startsWith("ST-")) {
       return orderStatusReply(parts[1]); // Look up specific order
     }
-    return menuReply();
+    // Return menu but also initialize AI history
   }
 
-  if (isMenuRequest(lower)) {
-    return menuReply();
-  }
-
-  if (lower === "1") {
-    return newOrderReply();
-  }
-
-  if (isOrderStatusRequest(lower) || extractOrderRef(text)) {
-    // If they provided a ref, look it up. Otherwise ask for it.
-    const ref = extractOrderRef(text);
-    if (ref) return orderStatusReply(ref);
-    return "Please send your order number (e.g. ST-20260518-1234) to check status.";
-  }
-
-  if (lower === "3") {
-    return pricingReply();
-  }
-
+  // If user explicitly asks for human
   if (lower === "4" || mentionsAny(lower, ["person", "human", "agent", "talk to someone"])) {
+    await setHumanMode(chatId, true);
     return [
-      "A Pwata team member will pick this up here on Telegram.",
+      "A Pwata team member will pick this up here on Telegram shortly.",
       "",
       "Meanwhile, if you want to place a structured order, use:",
       ORDER_APP_URL,
     ].join("\n");
   }
 
-  if (mentionsAny(lower, ["order", "design", "logo", "flyer", "poster", "social", "shirt", "t-shirt", "hoodie", "website", "bot"])) {
-    return newOrderReply();
-  }
-
-  if (mentionsAny(lower, ["price", "pricing", "cost", "quote", "packages"])) {
-    return pricingReply();
-  }
-
-  return aiAssistedReply(text);
+  // We route everything else directly to the new Smart AI!
+  return aiAssistedReply(chatId, text, session);
 }
+
+
 
 export async function sendTelegramText(chatId: string | number, body: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -119,7 +111,6 @@ export async function sendTelegramText(chatId: string | number, body: string) {
     body: JSON.stringify({
       chat_id: chatId,
       text: body,
-      parse_mode: "Markdown",
       disable_web_page_preview: true,
     }),
   });
@@ -226,8 +217,7 @@ function extractOrderRef(text: string) {
 }
 
 async function findOrderByReference(orderRef: string): Promise<OrderLookupResult | null> {
-  const sql = await getSql();
-  const rows = await sql`
+  const rows = await sqlDirect`
     SELECT o.id, o.order_number, o.status, o.payment_status, o.total_amount,
            o.deposit_amount, o.guest_name, o.guest_phone, c.name AS customer_name,
            o.created_at
@@ -241,40 +231,116 @@ async function findOrderByReference(orderRef: string): Promise<OrderLookupResult
   return rows[0] ?? null;
 }
 
-async function getSql() {
-  const db = await import("@/lib/db");
-  return db.sql;
-}
-
-async function aiAssistedReply(text: string): Promise<string> {
+async function aiAssistedReply(chatId: number, text: string, session: any): Promise<string> {
+  console.log(`[AI] Starting aiAssistedReply for chatId=${chatId}`);
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return DEFAULT_REPLY;
+  if (!apiKey) {
+    console.warn("[AI] No GEMINI_API_KEY, returning DEFAULT_REPLY");
+    return DEFAULT_REPLY;
+  }
+  console.log(`[AI] API key found (${apiKey.length} chars)`);
 
   try {
-    const { GoogleGenAI } = await import("@google/genai");
+    const { GoogleGenAI, Type } = await import("@google/genai");
+    console.log("[AI] GoogleGenAI imported OK");
     const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: process.env.TELEGRAM_AI_MODEL || "gemini-2.5-flash",
-      contents: `Customer Telegram message: "${text}"`,
-      config: {
-        systemInstruction: [
-          "You are the Telegram assistant for Pwata Creatives in Uganda.",
-          "Pwata sells logo design, brand identity, social media graphics, print design, merchandise design, websites, and WhatsApp/Telegram bots.",
-          "Reply as a helpful sales/support assistant in 1 to 5 short Telegram-friendly lines.",
-          `For structured orders, send customers to this order page: ${ORDER_APP_URL}`,
-          "Do not claim a payment was received, an order exists, or a job is complete unless the accounting system says so.",
-          "Do not invent exact delivery dates, discounts, private business data, or payment confirmations.",
-          "If the customer seems ready to order, guide them to the order page and offer human follow-up.",
-          "If unsure, ask one concise clarifying question or suggest replying 4 to talk to a person.",
-        ].join("\n"),
-        temperature: 0.35,
-      },
+    
+    // Fetch live product data for RAG
+    const products = await getProductsForAI();
+    let productContext = "Live Pwata Services & Prices:\\n";
+    products.forEach(p => {
+      productContext += `- ${p.name} (${p.category}): UGX ${p.price.toLocaleString()}\\n`;
     });
 
+    const systemInstruction = [
+      "You are the friendly Telegram assistant for Pwata Creatives in Uganda.",
+      "Pwata sells logo design, brand identity, social media graphics, print design, merchandise design, websites, and WhatsApp/Telegram bots.",
+      "Reply concisely in 1 to 5 short Telegram-friendly lines. Use emojis.",
+      `For structured orders, send customers to this order page: ${ORDER_APP_URL}`,
+      "You have access to live pricing below. Do not invent prices.",
+      productContext,
+      "If the customer wants to check their order, ask for their order number (e.g. ST-20260518-1234) and use your 'checkOrderStatus' tool to find it.",
+      "If the customer seems highly frustrated or explicitly wants a human, tell them to reply with the number 4."
+    ].join("\n");
+
+    const tools = [{
+      functionDeclarations: [
+        {
+          name: "checkOrderStatus",
+          description: "Look up a customer's live order status by their order number.",
+          parameters: {
+            type: Type.OBJECT,
+            properties: {
+              orderNumber: { type: Type.STRING, description: "The order number, like ST-20260518-1234" }
+            },
+            required: ["orderNumber"]
+          }
+        }
+      ]
+    }];
+
+    // Build conversation history
+    const history = session.history as Content[];
+    const userMessage: Content = { role: "user", parts: [{ text }] };
+    const conversation = [...history, userMessage];
+
+    const model = process.env.TELEGRAM_AI_MODEL || "gemini-2.5-flash";
+    console.log(`[AI] Calling Gemini model=${model} history_len=${conversation.length}`);
+    let response = await ai.models.generateContent({
+      model,
+      contents: conversation,
+      config: { systemInstruction, tools, temperature: 0.35 },
+    });
+    console.log(`[AI] Gemini responded, text length=${(response.text ?? "").length}, functionCalls=${response.functionCalls?.length ?? 0}`);
+
+    // Check if the AI decided to call the checkOrderStatus tool
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      const call = response.functionCalls[0];
+      if (call.name === "checkOrderStatus") {
+        const orderNumber = (call.args as any)?.orderNumber;
+        const order = await findOrderByReference(orderNumber || "");
+        
+        // Execute tool and generate final response
+        const toolResult = order ? {
+          status: statusLabel(order.status),
+          payment: paymentLabel(order.payment_status),
+          total: order.total_amount,
+          deposit: order.deposit_amount,
+          customer: order.customer_name || order.guest_name
+        } : { error: "Order not found. Please double check the number." };
+
+        const toolMessage: Content = {
+          role: "user",
+          parts: [{
+            functionResponse: {
+              name: call.name,
+              response: toolResult
+            }
+          }]
+        };
+        
+        conversation.push({ role: "model", parts: [{ functionCall: call }] });
+        conversation.push(toolMessage);
+        
+        response = await ai.models.generateContent({
+          model,
+          contents: conversation,
+          config: { systemInstruction, tools, temperature: 0.35 },
+        });
+      }
+    }
+
     const reply = (response.text ?? "").trim();
-    return reply || DEFAULT_REPLY;
-  } catch (error) {
-    console.error("Telegram AI reply failed:", error);
+    if (reply) {
+      // Save history
+      conversation.push({ role: "model", parts: [{ text: reply }] });
+      await updateBotSessionHistory(chatId, conversation);
+      return reply;
+    }
+    
+    return DEFAULT_REPLY;
+  } catch (error: any) {
+    console.error("[AI] Telegram Agentic AI reply failed:", error?.message || error);
     return DEFAULT_REPLY;
   }
 }

@@ -192,6 +192,14 @@ async function migrate() {
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
 
+  await sql`CREATE TABLE IF NOT EXISTS bot_sessions (
+    id TEXT PRIMARY KEY,
+    chat_id TEXT UNIQUE NOT NULL,
+    history JSONB DEFAULT '[]'::jsonb,
+    is_human_mode BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+
   await sql`CREATE TABLE IF NOT EXISTS cash_closes (
     id TEXT PRIMARY KEY,
     close_date DATE UNIQUE NOT NULL,

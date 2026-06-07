@@ -2,6 +2,7 @@ import { sql, getOrderWithDetails } from "./db";
 import { generateId, generateInvoiceNumber } from "./utils";
 import { sendWhatsAppText, normalizePhoneDigits } from "./whatsapp-bot";
 import { sendTelegramText } from "./telegram-bot";
+import { sendDepositConfirmationEmail } from "./email";
 
 export async function onOrderStatusChange(
   orderId: string,
@@ -130,6 +131,28 @@ export async function onOrderStatusChange(
         } catch (err) {
           console.error(`❌ Failed to send outbound status update Telegram to ${telegramChatId}:`, err);
         }
+      }
+    }
+
+    // 3. Email notification on deposit confirmation (store orders → in_design)
+    if (isStoreOrder && newStatus === "in_design" && order.guest_email) {
+      const customerName = order.customer_name || order.guest_name || "there";
+      const trackingLink = `${ORDER_APP_URL}/track/${order.order_number}`;
+      const ACCOUNTING_APP_URL = (
+        process.env.ACCOUNTING_APP_URL ||
+        "https://pwata-accounting.vercel.app"
+      ).replace(/\/$/, "");
+      const invoicePdfUrl = pdfUrl ? `${ACCOUNTING_APP_URL}${pdfUrl}` : undefined;
+      try {
+        await sendDepositConfirmationEmail({
+          to: order.guest_email,
+          orderNumber: order.order_number,
+          trackingLink,
+          invoicePdfUrl,
+          customerName,
+        });
+      } catch (err) {
+        console.error("❌ Failed to send deposit confirmation email:", err);
       }
     }
 

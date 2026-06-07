@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import StatusBadge from "@/components/StatusBadge";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { formatUGX, formatDate } from "@/lib/utils";
-import { briefToText, type DesignBrief } from "@/lib/design-brief";
+import { renderCustomizations, hasAnyContent, type DesignBrief } from "@/lib/design-brief";
 
 type CustomizationData = string | Record<string, unknown> | null;
 
@@ -41,6 +41,7 @@ interface OrderDetail {
   total_amount: number;
   deposit_amount?: number;
   source?: string;
+  service_type?: string | null;
   payment_method: string | null;
   payment_status: string;
   delivery_address: string | null;
@@ -78,28 +79,19 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-function toDesignBrief(raw: CustomizationData): DesignBrief | null {
+function toObject(raw: CustomizationData): Record<string, unknown> | null {
   if (!raw) return null;
-  if (typeof raw === "object") return raw as DesignBrief;
-  try { return JSON.parse(raw) as DesignBrief; } catch { return null; }
+  if (typeof raw === "object") return raw as Record<string, unknown>;
+  try { return JSON.parse(raw) as Record<string, unknown>; } catch { return null; }
 }
 
-function parseCustomizationsLabel(raw: CustomizationData): string {
-  const obj = toDesignBrief(raw);
+function compactCustomizations(raw: CustomizationData, serviceType: string): string {
+  const obj = toObject(raw);
   if (!obj) return typeof raw === "string" ? raw : "";
-  if (typeof obj === "string") return obj;
-  const parts: string[] = [];
-  if (obj.color || obj.size) parts.push([obj.color, obj.size].filter(Boolean).join(", "));
-  if (obj.print_text) parts.push(`"${obj.print_text}"`);
-  if (obj.style) parts.push(obj.style);
-  if (obj.placement) parts.push(obj.placement);
-  return parts.join(" · ") || (obj.notes ?? "");
-}
-
-function hasBriefContent(raw: CustomizationData): boolean {
-  const obj = toDesignBrief(raw);
-  if (!obj) return false;
-  return !!(obj.print_text || obj.style || obj.color_scheme || obj.placement || obj.inspiration);
+  const full = renderCustomizations(serviceType, obj);
+  const lines = full.split("\n").filter(Boolean);
+  if (lines.length <= 2) return lines.join(" · ");
+  return lines.slice(0, 2).map((l) => l.replace(/^[^:]+:\s*/, "")).join(" · ").trim();
 }
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -298,8 +290,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      {/* Design Brief card — show for store orders that have brief content */}
-      {order.source === "store" && order.items.some((it) => hasBriefContent(it.customizations)) && (
+      {/* Design Brief card — show for store orders that have any customization content */}
+      {order.source === "store" && order.items.some((it) => hasAnyContent(it.customizations)) && (
         <div className="card" style={{ marginBottom: "1rem", borderLeft: "4px solid var(--primary)" }}>
           <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem" }}>📋 Design Brief</h2>
           {order.deadline_date && (() => {
@@ -312,11 +304,12 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           })()}
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {order.items.map((it) => {
-              const brief = toDesignBrief(it.customizations);
-              if (!brief) return null;
-              const text = briefToText(it.product_name, it.quantity, brief);
+              const obj = toObject(it.customizations);
+              if (!obj || !hasAnyContent(it.customizations)) return null;
+              const text = renderCustomizations(order.service_type ?? "merchandise", obj);
               return (
                 <div key={it.id} style={{ background: "var(--bg-input)", borderRadius: 8, padding: "0.625rem 0.75rem" }}>
+                  <p style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: "0.25rem" }}>{it.quantity}× {it.product_name}</p>
                   <pre style={{ fontFamily: "inherit", fontSize: "0.8rem", whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0 }}>{text}</pre>
                 </div>
               );
@@ -415,7 +408,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.75rem" }}>Items ({order.items.length})</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {order.items.map((it) => {
-              const custom = parseCustomizationsLabel(it.customizations);
+              const custom = compactCustomizations(it.customizations, order.service_type ?? "merchandise");
               return (
                 <div key={it.id} style={{ display: "flex", gap: "0.75rem", padding: "0.5rem", background: "var(--bg-input)", borderRadius: "8px" }}>
                   {it.image_url ? (

@@ -18,7 +18,7 @@ export async function GET(
     const rows = await sql`
       SELECT id, order_number, status, payment_status, total_amount, deposit_amount,
              source, service_type, deadline_date, artwork_urls, notes, created_at
-      FROM orders WHERE id = ${id}
+      FROM orders WHERE id = ${id} OR order_number = ${id}
     ` as any[];
     const order = rows[0];
 
@@ -29,7 +29,7 @@ export async function GET(
     const items = await sql`
       SELECT oi.id, oi.product_id, p.name AS product_name, oi.quantity, oi.unit_price, oi.subtotal, oi.customizations
       FROM order_items oi JOIN products p ON oi.product_id = p.id
-      WHERE oi.order_id = ${id}
+      WHERE oi.order_id = ${order.id}
     ` as any[];
 
     return NextResponse.json({ ...order, items }, { headers });

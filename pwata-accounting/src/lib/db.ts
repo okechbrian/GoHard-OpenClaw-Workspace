@@ -136,6 +136,13 @@ try {
       status TEXT NOT NULL, changed_by TEXT REFERENCES users(id), notes TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS bot_sessions (
+      id TEXT PRIMARY KEY,
+      chat_id TEXT UNIQUE NOT NULL,
+      history JSON DEFAULT '[]',
+      is_human_mode BOOLEAN DEFAULT 0,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
     CREATE TABLE IF NOT EXISTS cash_closes (
       id TEXT PRIMARY KEY, close_date TEXT UNIQUE NOT NULL,
       expected_cash REAL NOT NULL, actual_cash REAL NOT NULL, difference REAL NOT NULL,

@@ -24,7 +24,9 @@ export async function POST(request: NextRequest) {
 
     for (const message of messages) {
       const reply = await buildPwataReply(message.from, message.text);
-      await sendWhatsAppText(message.from, reply);
+      if (reply) {
+        await sendWhatsAppText(message.from, reply);
+      }
     }
 
     return NextResponse.json({ ok: true, processed: messages.length });
