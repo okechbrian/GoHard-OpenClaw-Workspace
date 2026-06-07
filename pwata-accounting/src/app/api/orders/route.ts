@@ -36,8 +36,7 @@ export async function GET(request: NextRequest) {
     }
     query += ` GROUP BY o.id, c.name, o.source, o.deposit_amount ORDER BY o.created_at DESC`;
 
-    const result = await sql.query(query, params);
-    const orders = Array.isArray(result) ? result : (result.rows ?? []);
+    const orders = await sql.query(query, params) as any[];
     return NextResponse.json(orders);
   } catch (error) {
     console.error("orders fetch failed:", error);
