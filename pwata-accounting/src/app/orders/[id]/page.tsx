@@ -8,6 +8,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { formatUGX, formatDate } from "@/lib/utils";
 import { briefToText, type DesignBrief } from "@/lib/design-brief";
 
+type CustomizationData = string | Record<string, unknown> | null;
+
 interface OrderItem {
   id: string;
   product_id: string;
@@ -16,7 +18,7 @@ interface OrderItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
-  customizations: string | null;
+  customizations: CustomizationData;
 }
 
 interface StatusHistoryEntry {
@@ -76,30 +78,28 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-function parseCustomizationsLabel(raw: string | null): string {
-  if (!raw) return "";
-  try {
-    const obj = JSON.parse(raw) as DesignBrief;
-    if (typeof obj === "string") return obj;
-    const parts: string[] = [];
-    if (obj.color || obj.size) parts.push([obj.color, obj.size].filter(Boolean).join(", "));
-    if (obj.print_text) parts.push(`"${obj.print_text}"`);
-    if (obj.style) parts.push(obj.style);
-    if (obj.placement) parts.push(obj.placement);
-    return parts.join(" · ") || (obj.notes ?? "");
-  } catch {
-    return raw;
-  }
+function toDesignBrief(raw: CustomizationData): DesignBrief | null {
+  if (!raw) return null;
+  if (typeof raw === "object") return raw as DesignBrief;
+  try { return JSON.parse(raw) as DesignBrief; } catch { return null; }
 }
 
-function hasBriefContent(raw: string | null): boolean {
-  if (!raw) return false;
-  try {
-    const obj = JSON.parse(raw) as DesignBrief;
-    return !!(obj.print_text || obj.style || obj.color_scheme || obj.placement || obj.inspiration);
-  } catch {
-    return false;
-  }
+function parseCustomizationsLabel(raw: CustomizationData): string {
+  const obj = toDesignBrief(raw);
+  if (!obj) return typeof raw === "string" ? raw : "";
+  if (typeof obj === "string") return obj;
+  const parts: string[] = [];
+  if (obj.color || obj.size) parts.push([obj.color, obj.size].filter(Boolean).join(", "));
+  if (obj.print_text) parts.push(`"${obj.print_text}"`);
+  if (obj.style) parts.push(obj.style);
+  if (obj.placement) parts.push(obj.placement);
+  return parts.join(" · ") || (obj.notes ?? "");
+}
+
+function hasBriefContent(raw: CustomizationData): boolean {
+  const obj = toDesignBrief(raw);
+  if (!obj) return false;
+  return !!(obj.print_text || obj.style || obj.color_scheme || obj.placement || obj.inspiration);
 }
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -312,18 +312,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
           })()}
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {order.items.map((it) => {
-              if (!hasBriefContent(it.customizations)) return null;
-              try {
-                const brief = JSON.parse(it.customizations ?? "{}") as DesignBrief;
-                const text = briefToText(it.product_name, it.quantity, brief);
-                return (
-                  <div key={it.id} style={{ background: "var(--bg-input)", borderRadius: 8, padding: "0.625rem 0.75rem" }}>
-                    <pre style={{ fontFamily: "inherit", fontSize: "0.8rem", whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0 }}>{text}</pre>
-                  </div>
-                );
-              } catch {
-                return null;
-              }
+              const brief = toDesignBrief(it.customizations);
+              if (!brief) return null;
+              const text = briefToText(it.product_name, it.quantity, brief);
+              return (
+                <div key={it.id} style={{ background: "var(--bg-input)", borderRadius: 8, padding: "0.625rem 0.75rem" }}>
+                  <pre style={{ fontFamily: "inherit", fontSize: "0.8rem", whiteSpace: "pre-wrap", lineHeight: 1.6, margin: 0 }}>{text}</pre>
+                </div>
+              );
             })}
           </div>
           {order.artwork_urls && (() => {
@@ -400,6 +396,17 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               </>
             )}
             {order.notes && (<><dt style={{ color: "var(--text-muted)" }}>Notes</dt><dd>{order.notes}</dd></>)}
+            {order.source === "store" && (
+              <><dt style={{ color: "var(--text-muted)" }}>Tracking</dt><dd>
+                <button type="button" className="btn btn-ghost" style={{ fontSize: "0.75rem", padding: "0.25rem 0.5rem", cursor: "pointer" }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://pwata-orders.vercel.app/track/${order.id}`);
+                    toast.success("Tracking link copied");
+                  }}>
+                  📋 Copy tracking link
+                </button>
+              </dd></>
+            )}
           </dl>
         </div>
 
