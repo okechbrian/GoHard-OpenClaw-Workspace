@@ -111,6 +111,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [statusNotes, setStatusNotes] = useState("");
   const [updating, setUpdating] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const { prompt: askPrompt, render: renderConfirm } = useConfirm();
 
   async function handleMarkDepositPaid() {
@@ -147,16 +148,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
   const fetchOrder = useCallback(async () => {
     try {
+      setFetchError(null);
       const res = await fetch(`/api/orders/${id}`);
       if (res.status === 404) {
+        const body = await res.text();
+        console.error("Order 404:", id, body);
         setNotFound(true);
         return;
       }
-      if (!res.ok) throw new Error("fetch failed");
+      if (!res.ok) {
+        const body = await res.text();
+        console.error("Order fetch failed:", res.status, body);
+        setFetchError(`Server error ${res.status}`);
+        throw new Error("fetch failed");
+      }
       const data: OrderDetail = await res.json();
       setOrder(data);
       setNewStatus(data.status);
-    } catch {
+    } catch (err) {
+      console.error("Failed to load order:", err);
       toast.error("Failed to load order");
     } finally {
       setLoading(false);
@@ -196,6 +206,21 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="container">
         <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>Loading…</p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="container">
+        <div className="card" style={{ marginTop: "2rem", textAlign: "center" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "0.5rem" }}>Error loading order</h2>
+          <p style={{ color: "var(--warning)", marginBottom: "1rem" }}>{fetchError}</p>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+            <button className="btn btn-primary" onClick={fetchOrder}>Retry</button>
+            <Link href="/orders" className="btn btn-ghost">Back to orders</Link>
+          </div>
+        </div>
       </div>
     );
   }
