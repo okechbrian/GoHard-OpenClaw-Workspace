@@ -104,6 +104,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [updating, setUpdating] = useState(false);
   const [markingPaid, setMarkingPaid] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { prompt: askPrompt, render: renderConfirm } = useConfirm();
 
   async function handleMarkDepositPaid() {
@@ -285,6 +286,41 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               <p style={{ fontSize: "0.75rem", color: "var(--warning)", marginTop: "0.5rem" }}>
                 ⚠️ This will auto-create a Sale + Invoice record.
               </p>
+            )}
+            {(order.status === "cancelled" || order.status === "pending") && (
+              <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-ghost"
+                  style={{ color: "#ef4444", fontSize: "0.8rem", padding: "0.35rem 0.75rem" }}
+                  disabled={deleting}
+                  onClick={async () => {
+                    const confirmed = await askPrompt({
+                      title: "Delete order?",
+                      body: `This will permanently delete ${order.order_number}. Associated sales and invoices will be unlinked.`,
+                      label: `Type "${order.order_number}" to confirm`,
+                      placeholder: order.order_number,
+                      confirmLabel: "Delete",
+                    });
+                    if (confirmed !== order.order_number) return;
+                    setDeleting(true);
+                    try {
+                      const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
+                      if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || "Delete failed");
+                      }
+                      toast.success("Order deleted");
+                      window.location.href = "/orders";
+                    } catch (err: unknown) {
+                      toast.error(err instanceof Error ? err.message : "Failed to delete");
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                >
+                  {deleting ? "Deleting…" : "🗑 Delete order"}
+                </button>
+              </div>
             )}
           </>
         )}

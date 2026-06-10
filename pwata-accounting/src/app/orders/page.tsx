@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import StatusBadge from "@/components/StatusBadge";
 import { formatUGX, formatDate } from "@/lib/utils";
+import { useNewOrderAlert } from "@/hooks/use-new-order-alert";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 interface Order {
   id: string;
@@ -35,6 +37,7 @@ const STATUSES = [
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
@@ -63,11 +66,27 @@ export default function OrdersPage() {
     return () => clearTimeout(timer);
   }, [fetchOrders]);
 
+  useEffect(() => {
+    const id = setInterval(fetchOrders, 30000);
+    return () => clearInterval(id);
+  }, [fetchOrders]);
+
+  useNewOrderAlert(orders);
+  const { prompt: askConfirm, render: renderConfirm } = useConfirm();
+
+  const cancelledCount = orders.filter((o) => o.status === "cancelled").length;
+
   return (
     <div className="container">
       <header style={{ padding: "1.5rem 0 1rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Orders</h1>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            Orders
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.65rem", fontWeight: 500, color: "var(--text-muted)" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 2s infinite" }} />
+              Live
+            </span>
+          </h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>{orders.length} order{orders.length === 1 ? "" : "s"}</p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -76,6 +95,37 @@ export default function OrdersPage() {
             <Link href="/orders/kanban" style={{ padding: "0.5rem 0.875rem", color: "var(--text-muted)", textDecoration: "none", fontSize: "0.875rem", fontWeight: 600 }}>Kanban</Link>
           </div>
           <Link href="/orders/new" className="btn btn-primary">+ New Order</Link>
+          {cancelledCount > 0 && (
+            <button
+              className="btn btn-ghost"
+              style={{ color: "#ef4444", fontSize: "0.75rem", padding: "0.35rem 0.7rem" }}
+              disabled={clearing}
+              onClick={async () => {
+                const confirmed = await askConfirm({
+                  title: `Clear ${cancelledCount} cancelled order${cancelledCount !== 1 ? "s" : ""}?`,
+                  body: "This will permanently delete all cancelled orders. This cannot be undone.",
+                  label: "Type CLEAR to confirm",
+                  placeholder: "CLEAR",
+                  confirmLabel: "Delete all",
+                });
+                if (confirmed !== "CLEAR") return;
+                setClearing(true);
+                try {
+                  const res = await fetch("/api/orders/bulk-clear", { method: "DELETE" });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "Failed");
+                  toast.success(`Cleared ${data.deleted} cancelled orders`);
+                  fetchOrders();
+                } catch (err: unknown) {
+                  toast.error(err instanceof Error ? err.message : "Failed to clear");
+                } finally {
+                  setClearing(false);
+                }
+              }}
+            >
+              {clearing ? "Clearing…" : `🗑 Clear cancelled (${cancelledCount})`}
+            </button>
+          )}
         </div>
       </header>
 
@@ -161,6 +211,7 @@ export default function OrdersPage() {
         )}
         {loading && <p style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>Loading…</p>}
       </div>
+      {renderConfirm()}
     </div>
   );
 }

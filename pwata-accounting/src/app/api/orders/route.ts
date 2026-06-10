@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { generateId, generateStoreOrderNumber } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/server-auth";
+import { sendTelegramText } from "@/lib/telegram-bot";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -114,6 +115,27 @@ export async function POST(request: NextRequest) {
       FROM order_items oi JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = ${orderId}
     ` as any[];
+
+    const telegramAdminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    if (telegramAdminChatId) {
+      const customer = orderRows[0]?.customer_name || body.guest_name || body.guest_phone || "Unknown";
+      const adminMsg = [
+        `🛎️ *New Order Created*`,
+        ``,
+        `Order: *${orderNumber}*`,
+        `Customer: *${customer}*`,
+        `Total: UGX ${totalAmount.toLocaleString()}`,
+        `Payment: ${body.payment_method}`,
+        body.notes ? `Notes: ${body.notes}` : null,
+        ``,
+        `https://pwata-accounting.vercel.app/orders/${orderId}`,
+      ].filter(Boolean).join("\n");
+      try {
+        await sendTelegramText(telegramAdminChatId, adminMsg);
+      } catch (err) {
+        console.error("Failed to send Telegram admin alert:", err);
+      }
+    }
 
     return NextResponse.json({ ...orderRows[0], items }, { status: 201 });
 

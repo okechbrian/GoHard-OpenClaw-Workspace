@@ -99,3 +99,36 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: orderId } = await params;
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const orderRows = await sql`
+      SELECT id, status, order_number FROM orders WHERE id = ${orderId}
+    ` as Array<{ id: string; status: string; order_number: string }>;
+    if (orderRows.length === 0) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const order = orderRows[0];
+    if (order.status !== "cancelled" && order.status !== "pending") {
+      return NextResponse.json({ error: "Only cancelled or pending orders can be deleted" }, { status: 400 });
+    }
+
+    await sql`UPDATE sales SET order_id = NULL WHERE order_id = ${orderId}`;
+    await sql`UPDATE invoices SET order_id = NULL WHERE order_id = ${orderId}`;
+    await sql`DELETE FROM orders WHERE id = ${orderId}`;
+
+    console.log(`🗑️ Order ${order.order_number} (${orderId}) deleted by ${user.name || user.id}`);
+
+    return NextResponse.json({ deleted: true, order_number: order.order_number });
+  } catch (error) {
+    console.error("Order delete error:", error);
+    return NextResponse.json({ error: "Failed to delete order" }, { status: 500 });
+  }
+}

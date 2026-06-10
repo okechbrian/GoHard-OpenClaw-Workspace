@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
 import NavIcon from "@/components/NavIcon";
 import ThemeToggle from "@/components/ThemeToggle";
+import { unlockAudio } from "@/lib/notification-sound";
+import { toast } from "sonner";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('pwata-theme');var t=s||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
@@ -36,6 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [notifState, setNotifState] = useState<"off" | "on" | "denied">("off");
 
   useEffect(() => {
     if (pathname.startsWith("/store")) return;
@@ -67,6 +70,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [pathname, user]);
 
+  useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      if (Notification.permission === "granted") setNotifState("on");
+      else if (Notification.permission === "denied") setNotifState("denied");
+    }
+  }, []);
+
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "DELETE" });
     window.location.href = "/login";
@@ -74,6 +84,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const [avatarBroken, setAvatarBroken] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifOrders, setNotifOrders] = useState<any[]>([]);
+  const [notifBadge, setNotifBadge] = useState(0);
 
   // Close the More sheet on navigation
   useEffect(() => { setMoreOpen(false); }, [pathname]);
@@ -158,6 +171,101 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </div>
             )}
             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{user?.name}</span>
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  unlockAudio();
+                  if (notifOpen) { setNotifOpen(false); return; }
+                  setNotifOpen(true);
+                  setNotifBadge(0);
+                  if (Notification.permission === "default") {
+                    const r = await Notification.requestPermission();
+                    if (r === "granted") setNotifState("on");
+                    else if (r === "denied") setNotifState("denied");
+                  } else if (Notification.permission === "granted") {
+                    setNotifState("on");
+                  }
+                  try {
+                    const res = await fetch("/api/orders/recent");
+                    const data = await res.json();
+                    if (Array.isArray(data)) setNotifOrders(data);
+                  } catch {}
+                }}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontSize: "1rem", lineHeight: 1, padding: "2px 4px", position: "relative",
+                  opacity: notifState === "on" ? 1 : 0.5,
+                }}
+                title={
+                  notifState === "on" ? "Recent orders" :
+                  notifState === "denied" ? "Notifications blocked" :
+                  "Enable notifications"
+                }
+              >
+                {notifState === "on" ? "🔔" : notifState === "denied" ? "🚫" : "🔕"}
+                {notifBadge > 0 && (
+                  <span style={{
+                    position: "absolute", top: -4, right: -4,
+                    background: "#ef4444", color: "#fff",
+                    fontSize: "0.55rem", fontWeight: 700,
+                    padding: "1px 4px", borderRadius: 8, lineHeight: 1.2,
+                  }}>
+                    {notifBadge > 9 ? "9+" : notifBadge}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div
+                    style={{ position: "fixed", inset: 0, zIndex: 39 }}
+                    onClick={() => setNotifOpen(false)}
+                  />
+                  <div style={{
+                    position: "absolute", top: "100%", right: 0, zIndex: 40,
+                    width: 300, maxHeight: 320, overflowY: "auto",
+                    background: "var(--bg-card)", border: "1px solid var(--border)",
+                    borderRadius: 10, boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
+                    padding: "0.5rem 0", marginTop: 6,
+                  }}>
+                    <p style={{ padding: "0.25rem 0.75rem 0.5rem", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)" }}>
+                      Recent orders
+                    </p>
+                    {notifOrders.length === 0 ? (
+                      <p style={{ padding: "0.75rem", fontSize: "0.8rem", color: "var(--text-muted)", textAlign: "center" }}>No recent orders</p>
+                    ) : (
+                      notifOrders.map((o, i) => (
+                        <Link
+                          key={o.id}
+                          href={`/orders/${o.id}`}
+                          onClick={() => setNotifOpen(false)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: "0.5rem",
+                            padding: "0.45rem 0.75rem", textDecoration: "none", color: "inherit",
+                            background: i === 0 ? "rgba(227,122,84,0.06)" : "transparent",
+                            borderBottom: i < notifOrders.length - 1 ? "1px solid var(--border)" : "none",
+                          }}
+                        >
+                          <span style={{ fontSize: "0.85rem", flexShrink: 0 }}>{i === 0 ? "🆕" : "📋"}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: "0.8rem", fontWeight: 600 }}>{o.order_number}</p>
+                            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {o.customer}
+                            </p>
+                          </div>
+                          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", textAlign: "right" }}>
+                            <span className={`badge ${o.status === "completed" ? "badge-green" : o.status === "cancelled" ? "badge-red" : "badge-yellow"}`} style={{ fontSize: "0.5rem" }}>
+                              {o.status}
+                            </span>
+                          </span>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
             <ThemeToggle />
             <button onClick={handleLogout} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "inherit" }}>Logout</button>
           </div>

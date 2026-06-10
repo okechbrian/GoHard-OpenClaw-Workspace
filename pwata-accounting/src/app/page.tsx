@@ -32,6 +32,17 @@ interface CashClose {
   history: Array<{ close_date: string; expected_cash: number; actual_cash: number; difference: number }>;
 }
 
+interface RecentOrder {
+  id: string;
+  order_number: string;
+  status: string;
+  payment_status: string;
+  total_amount: number;
+  source: string;
+  customer: string;
+  created_at: string;
+}
+
 const PAYMENT_LABELS: Record<string, string> = {
   cash: "Cash",
   mtn_momo: "MTN MoMo",
@@ -54,6 +65,7 @@ export default function HomePage() {
   const [cashNotes, setCashNotes] = useState("");
   const [cashSaving, setCashSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
 
@@ -64,11 +76,13 @@ export default function HomePage() {
     Promise.all([
       fetch("/api/reports").then((r) => r.json()),
       fetch("/api/orders/stats").then((r) => r.json()),
+      fetch("/api/orders/recent").then((r) => r.json()),
       fetch("/api/auth/session").then((r) => r.json()).catch(() => null),
     ])
-      .then(([report, stats, session]) => {
+      .then(([report, stats, recent, session]) => {
         setData(report);
         setOrderStats(stats);
+        if (Array.isArray(recent)) setRecentOrders(recent);
         if (session?.user?.name) setUserName(session.user.name);
       })
       .catch(() => {})
@@ -265,6 +279,46 @@ export default function HomePage() {
           ) : null}
         </section>
       )}
+
+      {/* Recent orders */}
+      <section className="dash-section">
+        <h2>Recent orders</h2>
+        <div className="card" style={{ padding: 0 }}>
+          {recentOrders.length === 0 ? (
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", padding: "1rem", textAlign: "center" }}>No orders yet</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {recentOrders.map((o, i) => (
+                <Link
+                  key={o.id}
+                  href={`/orders/${o.id}`}
+                  style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "0.7rem 1rem", textDecoration: "none", color: "inherit",
+                    borderBottom: i < recentOrders.length - 1 ? "1px solid var(--border)" : "none",
+                    background: i === 0 ? "rgba(227,122,84,0.04)" : "transparent",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                    {i === 0 && <span style={{ fontSize: "0.7rem" }}>🆕</span>}
+                    <span style={{ fontWeight: 600, fontSize: "0.8rem", whiteSpace: "nowrap" }}>{o.order_number}</span>
+                    {o.source === "store" && <span className="badge badge-blue" style={{ fontSize: "0.55rem" }}>Store</span>}
+                    <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {o.customer}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+                    <span style={{ fontWeight: 700, fontSize: "0.8rem" }} className="num">{formatUGX(o.total_amount)}</span>
+                    <span className={`badge ${o.status === "completed" ? "badge-green" : o.status === "cancelled" ? "badge-red" : "badge-yellow"}`} style={{ fontSize: "0.55rem" }}>
+                      {o.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Breakdown */}
       <section className="dash-section">
